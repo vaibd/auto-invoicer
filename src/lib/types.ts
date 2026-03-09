@@ -66,7 +66,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   sender: { fields: DEFAULT_SENDER_FIELDS },
   receiver: { fields: DEFAULT_RECEIVER_FIELDS },
   products: [],
-  defaultTemplateId: "prev-last-15",
+  defaultTemplateId: "last-15-days",
   defaultMonth: null,
   customTemplates: [],
   lastInvoiceNumber: 0,

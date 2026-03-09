@@ -1,9 +1,14 @@
 import { DateTemplate, CustomDateTemplate } from "./types";
 
 export const BUILT_IN_TEMPLATES: DateTemplate[] = [
+  { id: "last-15-days", label: "Previous month (last 15 days)" },
   { id: "prev-full", label: "Previous month (full)" },
-  { id: "prev-first-15", label: "Previous month (1st–15th)" },
-  { id: "prev-last-15", label: "Previous month (16th–end)" },
+  { id: "prev-2-months", label: "Previous 2 months" },
+  { id: "curr-first-15-days", label: "Current month (first 15 days)" },
+  { id: "curr-last-15-days", label: "Current month (last 15 days)" },
+  { id: "next-last-15-days", label: "Next month (first 15 days)" },
+  { id: "next-full", label: "Next month (full)" },
+  { id: "next-2-months", label: "Next 2 months" },
 ];
 
 function getTargetMonth(
@@ -37,22 +42,65 @@ export function resolveTemplate(
   const { month, year } = getTargetMonth(defaultMonth);
   const lastDay = lastDayOfMonth(year, month);
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   switch (templateId) {
     case "prev-full":
       return {
         from: new Date(year, month, 1),
         to: new Date(year, month, lastDay),
       };
-    case "prev-first-15":
+    case "last-15-days": {
+      const endOfPrev = new Date(year, month, lastDay);
+      const startOfLast15 = new Date(year, month, lastDay - 14);
+      return { from: startOfLast15, to: endOfPrev };
+    }
+    case "prev-2-months": {
+      const twoMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+      const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { from: twoMonthsAgo, to: prevMonthEnd };
+    }
+    case "curr-first-15-days": {
+      const currMonth = today.getMonth();
+      const currYear = today.getFullYear();
       return {
-        from: new Date(year, month, 1),
-        to: new Date(year, month, 15),
+        from: new Date(currYear, currMonth, 1),
+        to: new Date(currYear, currMonth, 15),
       };
-    case "prev-last-15":
+    }
+    case "curr-last-15-days": {
+      const currMonth = today.getMonth();
+      const currYear = today.getFullYear();
+      const currLastDay = lastDayOfMonth(currYear, currMonth);
       return {
-        from: new Date(year, month, 16),
-        to: new Date(year, month, lastDay),
+        from: new Date(currYear, currMonth, currLastDay - 14),
+        to: new Date(currYear, currMonth, currLastDay),
       };
+    }
+    case "next-full": {
+      const nextMonth = today.getMonth() + 1;
+      const nextYear = today.getFullYear();
+      const nextLastDay = lastDayOfMonth(nextYear, nextMonth);
+      return {
+        from: new Date(nextYear, nextMonth, 1),
+        to: new Date(nextYear, nextMonth, nextLastDay),
+      };
+    }
+    case "next-last-15-days": {
+      const nextMonth = today.getMonth() + 1;
+      const nextYear = today.getFullYear();
+      const nextLastDay = lastDayOfMonth(nextYear, nextMonth);
+      return {
+        from: new Date(nextYear, nextMonth, nextLastDay - 14),
+        to: new Date(nextYear, nextMonth, nextLastDay),
+      };
+    }
+    case "next-2-months": {
+      const nextStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+      const twoMonthsEnd = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+      return { from: nextStart, to: twoMonthsEnd };
+    }
     default:
       return {
         from: new Date(year, month, 1),

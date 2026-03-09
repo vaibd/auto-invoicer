@@ -37,7 +37,7 @@ import {
 export default function Dashboard() {
   const router = useRouter();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [selectedTemplate, setSelectedTemplate] = useState("prev-last-15");
+  const [selectedTemplate, setSelectedTemplate] = useState("last-15-days");
   const [generating, setGenerating] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
