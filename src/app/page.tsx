@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, FileText, Loader2 } from "lucide-react";
+import { Settings, FileText, Loader2, Pencil } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { getNextInvoiceNumber, peekNextInvoiceNumber } from "@/lib/invoice-numbe
 import { DateTemplateSelector } from "@/components/invoice/DateTemplateSelector";
 import { InvoicePDF } from "@/components/pdf/InvoicePDF";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Dashboard() {
@@ -22,6 +23,9 @@ export default function Dashboard() {
   const [selectedTemplate, setSelectedTemplate] = useState("prev-last-15");
   const [generating, setGenerating] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [fileNameManuallyEdited, setFileNameManuallyEdited] = useState(false);
 
   useEffect(() => {
     if (!hasSetup()) {
@@ -31,6 +35,9 @@ export default function Dashboard() {
     const s = getSettings();
     setSettings(s);
     setSelectedTemplate(s.defaultTemplateId);
+    const nextNum = peekNextInvoiceNumber();
+    setInvoiceNumber(nextNum);
+    setFileName(nextNum);
     setLoaded(true);
   }, [router]);
 
@@ -47,7 +54,9 @@ export default function Dashboard() {
     }
     setGenerating(true);
     try {
-      const invoiceNumber = getNextInvoiceNumber();
+      // Increment the persistent counter
+      getNextInvoiceNumber();
+
       const data = {
         invoiceNumber,
         invoiceDate: new Date(),
@@ -58,19 +67,26 @@ export default function Dashboard() {
         products: settings.products,
       };
 
+      const pdfFileName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
-      saveAs(blob, `${invoiceNumber}.pdf`);
+      saveAs(blob, pdfFileName);
       toast.success(`Invoice #${invoiceNumber} downloaded`);
 
-      // Refresh settings to update invoice number display
-      setSettings(getSettings());
+      // Refresh settings and set next invoice number
+      const s = getSettings();
+      setSettings(s);
+      const nextNum = peekNextInvoiceNumber();
+      setInvoiceNumber(nextNum);
+      if (!fileNameManuallyEdited) {
+        setFileName(nextNum);
+      }
     } catch (err) {
       console.error("PDF generation failed:", err);
       toast.error("Failed to generate invoice. Please try again.");
     } finally {
       setGenerating(false);
     }
-  }, [settings, resolved]);
+  }, [settings, resolved, invoiceNumber, fileName, fileNameManuallyEdited]);
 
   if (!loaded) {
     return (
@@ -80,7 +96,6 @@ export default function Dashboard() {
     );
   }
 
-  const nextNumber = peekNextInvoiceNumber();
   const total = settings.products.reduce(
     (sum, p) => sum + p.price * p.quantity,
     0
@@ -206,14 +221,55 @@ export default function Dashboard() {
         </Card>
 
         {/* Invoice Info */}
-        <div className="text-center text-sm text-muted-foreground space-y-1">
-          <p>
-            Next invoice: <span className="font-medium text-foreground">#{nextNumber}</span>
-          </p>
-          <p>
-            Invoice date: <span className="font-medium text-foreground">{formatDate(new Date())}</span>
-          </p>
-        </div>
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">
+              Invoice Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground" htmlFor="invoiceNumber">
+                Invoice Number
+              </label>
+              <div className="relative">
+                <Input
+                  id="invoiceNumber"
+                  value={invoiceNumber}
+                  onChange={(e) => {
+                    setInvoiceNumber(e.target.value);
+                    if (!fileNameManuallyEdited) {
+                      setFileName(e.target.value);
+                    }
+                  }}
+                  className="pr-8"
+                />
+                <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground" htmlFor="fileName">
+                File Name
+              </label>
+              <div className="relative">
+                <Input
+                  id="fileName"
+                  value={fileName}
+                  onChange={(e) => {
+                    setFileName(e.target.value);
+                    setFileNameManuallyEdited(true);
+                  }}
+                  className="pr-8"
+                />
+                <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              </div>
+              <p className="text-xs text-muted-foreground">.pdf will be appended automatically</p>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Invoice date: <span className="font-medium text-foreground">{formatDate(new Date())}</span>
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Sticky Generate Button */}
