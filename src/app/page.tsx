@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, FileText, Loader2, Minus, Plus } from "lucide-react";
+import { Settings, FileText, Loader2, Minus, Plus, Eye, X, Download } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 
-import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
+import { UserSettings, InvoiceData, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, hasSetup } from "@/lib/storage";
+import { formatCurrency } from "@/lib/currency";
 import {
   resolveTemplate,
   resolveForMonth,
@@ -48,6 +49,9 @@ export default function Dashboard() {
   const [customYear, setCustomYear] = useState(() => new Date().getFullYear());
   const [customRange, setCustomRange] = useState<RangeType>("full");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date());
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
     if (!hasSetup()) {
@@ -86,7 +90,7 @@ export default function Dashboard() {
       // Increment the persistent counter
       getNextInvoiceNumber();
 
-      const data = {
+      const data: InvoiceData = {
         invoiceNumber,
         invoiceDate,
         from: resolved.from,
@@ -94,6 +98,7 @@ export default function Dashboard() {
         sender: settings.sender,
         receiver: settings.receiver,
         products: settings.products,
+        currency: settings.currency,
       };
 
       const pdfFileName = invoiceNumber.endsWith(".pdf") ? invoiceNumber : `${invoiceNumber}.pdf`;
@@ -112,7 +117,57 @@ export default function Dashboard() {
     } finally {
       setGenerating(false);
     }
-  }, [settings, resolved, invoiceNumber]);
+  }, [settings, resolved, invoiceNumber, invoiceDate]);
+
+  const handlePreview = useCallback(async () => {
+    if (settings.products.length === 0) {
+      toast.error("No products configured. Go to Setup to add products.");
+      return;
+    }
+    setPreviewing(true);
+    try {
+      const data: InvoiceData = {
+        invoiceNumber,
+        invoiceDate,
+        from: resolved.from,
+        to: resolved.to,
+        sender: settings.sender,
+        receiver: settings.receiver,
+        products: settings.products,
+        currency: settings.currency,
+      };
+
+      const blob = await pdf(<InvoicePDF data={data} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      setPreviewBlob(blob);
+      setPreviewUrl(url);
+    } catch (err) {
+      console.error("PDF preview failed:", err);
+      toast.error("Failed to generate preview. Please try again.");
+    } finally {
+      setPreviewing(false);
+    }
+  }, [settings, resolved, invoiceNumber, invoiceDate]);
+
+  const closePreview = useCallback(() => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewBlob(null);
+  }, [previewUrl]);
+
+  const downloadFromPreview = useCallback(() => {
+    if (!previewBlob) return;
+    const pdfFileName = invoiceNumber.endsWith(".pdf") ? invoiceNumber : `${invoiceNumber}.pdf`;
+    saveAs(previewBlob, pdfFileName);
+    getNextInvoiceNumber();
+    toast.success(`Invoice #${invoiceNumber} downloaded`);
+    closePreview();
+
+    const s = getSettings();
+    setSettings(s);
+    const nextNum = peekNextInvoiceNumber();
+    setInvoiceNumber(nextNum);
+  }, [previewBlob, invoiceNumber, closePreview]);
 
   if (!loaded) {
     return (
@@ -222,18 +277,14 @@ export default function Dashboard() {
                       </span>
                     </span>
                     <span className="font-mono text-sm font-medium tabular-nums">
-                      ${(p.price * p.quantity).toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                      })}
+                      {formatCurrency(p.price * p.quantity, settings.currency)}
                     </span>
                   </div>
                 ))}
                 <div className="flex items-center justify-between border-t pt-3 mt-3">
                   <span className="font-sans text-sm font-bold">Total</span>
                   <span className="font-mono text-base font-bold tabular-nums">
-                    ${total.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                    })}
+                    {formatCurrency(total, settings.currency)}
                   </span>
                 </div>
               </div>
@@ -407,14 +458,33 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Sticky Generate Button */}
+      {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t p-4">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-2xl flex gap-3">
           <Button
             size="lg"
-            className="w-full h-12 text-base gap-2 font-sans font-bold shadow-lg shadow-primary/20"
+            variant="outline"
+            className="flex-1 h-12 text-base gap-2 font-sans font-bold"
+            onClick={handlePreview}
+            disabled={previewing || generating}
+          >
+            {previewing ? (
+              <>
+                <Loader2 className="size-5 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Eye className="size-5" />
+                Preview
+              </>
+            )}
+          </Button>
+          <Button
+            size="lg"
+            className="flex-1 h-12 text-base gap-2 font-sans font-bold shadow-lg shadow-primary/20"
             onClick={handleGenerate}
-            disabled={generating}
+            disabled={generating || previewing}
           >
             {generating ? (
               <>
@@ -424,12 +494,41 @@ export default function Dashboard() {
             ) : (
               <>
                 <FileText className="size-5" />
-                Generate Invoice
+                Generate
               </>
             )}
           </Button>
         </div>
       </div>
+
+      {/* Preview Overlay */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-sm">
+          <div className="flex items-center justify-between bg-background border-b px-4 py-3">
+            <h2 className="font-sans font-bold text-sm truncate">
+              Preview: {invoiceNumber}
+            </h2>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={downloadFromPreview}
+              >
+                <Download className="size-4" />
+                Download
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={closePreview}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          </div>
+          <iframe src={previewUrl} className="w-full flex-1" />
+        </div>
+      )}
     </div>
   );
 }

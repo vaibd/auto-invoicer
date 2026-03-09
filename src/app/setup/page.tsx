@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload, Download } from "lucide-react";
+import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, saveSettings } from "@/lib/storage";
+import { CURRENCIES } from "@/lib/currency";
 import { BUILT_IN_TEMPLATES } from "@/lib/date-templates";
 import { SenderReceiverForm } from "@/components/invoice/SenderReceiverForm";
 import { ProductForm } from "@/components/invoice/ProductForm";
@@ -24,6 +26,7 @@ export default function SetupPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSettings(getSettings());
@@ -36,6 +39,38 @@ export default function SetupPage() {
     router.push("/");
   }
 
+  function handleExport() {
+    const blob = new Blob([JSON.stringify(settings, null, 2)], {
+      type: "application/json",
+    });
+    saveAs(blob, "invoicer-settings.json");
+    toast.success("Settings exported");
+  }
+
+  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (!parsed.sender || !parsed.receiver || !parsed.products) {
+          toast.error("Invalid settings file: missing required fields");
+          return;
+        }
+        const imported: UserSettings = { ...DEFAULT_SETTINGS, ...parsed };
+        setSettings(imported);
+        toast.success("Settings imported — click Save to apply");
+      } catch {
+        toast.error("Failed to parse settings file");
+      }
+    };
+    reader.readAsText(file);
+    // Reset the input so the same file can be re-imported
+    e.target.value = "";
+  }
+
   if (!loaded) return null;
 
   return (
@@ -43,11 +78,7 @@ export default function SetupPage() {
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/")}
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
             <ArrowLeft className="size-5" />
           </Button>
           <div>
@@ -67,9 +98,7 @@ export default function SetupPage() {
               <SenderReceiverForm
                 title="Your Details"
                 party={settings.sender}
-                onChange={(sender) =>
-                  setSettings((s) => ({ ...s, sender }))
-                }
+                onChange={(sender) => setSettings((s) => ({ ...s, sender }))}
               />
             </CardContent>
           </Card>
@@ -92,10 +121,39 @@ export default function SetupPage() {
           <CardContent>
             <ProductForm
               products={settings.products}
-              onChange={(products) =>
-                setSettings((s) => ({ ...s, products }))
-              }
+              onChange={(products) => setSettings((s) => ({ ...s, products }))}
             />
+          </CardContent>
+        </Card>
+
+        {/* Currency */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-sans font-bold">Currency</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label>Invoice Currency</Label>
+              <Select
+                value={settings.currency}
+                onValueChange={(v) => {
+                  if (v) setSettings((s) => ({ ...s, currency: v }));
+                }}>
+                <SelectTrigger className="w-full h-12 md:h-9">
+                  <SelectValue>
+                    {CURRENCIES.find((c) => c.code === settings.currency)
+                      ?.label ?? settings.currency}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -111,11 +169,12 @@ export default function SetupPage() {
                 value={settings.defaultTemplateId}
                 onValueChange={(v) => {
                   if (v) setSettings((s) => ({ ...s, defaultTemplateId: v }));
-                }}
-              >
+                }}>
                 <SelectTrigger className="w-full h-12 md:h-9">
                   <SelectValue>
-                    {BUILT_IN_TEMPLATES.find((t) => t.id === settings.defaultTemplateId)?.label ?? "Select template"}
+                    {BUILT_IN_TEMPLATES.find(
+                      (t) => t.id === settings.defaultTemplateId
+                    )?.label ?? "Select template"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -130,13 +189,49 @@ export default function SetupPage() {
           </CardContent>
         </Card>
 
+        {/* Export & Import */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-sans font-bold">
+              Export & Import
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Back up your settings or transfer them to another device.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 gap-1.5"
+                onClick={handleExport}>
+                <Download className="size-4" />
+                Export
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 gap-1.5"
+                onClick={() => fileInputRef.current?.click()}>
+                <Upload className="size-4" />
+                Import
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleImport}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Save */}
         <div className="pb-8">
           <Button
             size="lg"
             className="w-full h-12 text-base font-sans font-bold shadow-lg shadow-primary/20"
-            onClick={handleSave}
-          >
+            onClick={handleSave}>
             Save Settings
           </Button>
         </div>

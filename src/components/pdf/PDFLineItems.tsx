@@ -1,5 +1,6 @@
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { Product } from "@/lib/types";
+import { formatCurrency } from "@/lib/currency";
 
 const styles = StyleSheet.create({
   table: {
@@ -52,13 +53,10 @@ const styles = StyleSheet.create({
 
 interface Props {
   products: Product[];
+  currency: string;
 }
 
-function formatCurrency(amount: number): string {
-  return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-export function PDFLineItems({ products }: Props) {
+export function PDFLineItems({ products, currency }: Props) {
   return (
     <View style={styles.table}>
       <View style={styles.headerRow}>
@@ -71,9 +69,9 @@ export function PDFLineItems({ products }: Props) {
         <View key={product.id} style={styles.row}>
           <Text style={styles.colName}>{product.name}</Text>
           <Text style={styles.colQty}>{product.quantity}</Text>
-          <Text style={styles.colPrice}>{formatCurrency(product.price)}</Text>
+          <Text style={styles.colPrice}>{formatCurrency(product.price, currency)}</Text>
           <Text style={styles.colAmount}>
-            {formatCurrency(product.price * product.quantity)}
+            {formatCurrency(product.price * product.quantity, currency)}
           </Text>
         </View>
       ))}

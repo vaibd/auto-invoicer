@@ -1,5 +1,6 @@
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { Product } from "@/lib/types";
+import { formatCurrency } from "@/lib/currency";
 
 const styles = StyleSheet.create({
   container: {
@@ -29,9 +30,10 @@ const styles = StyleSheet.create({
 
 interface Props {
   products: Product[];
+  currency: string;
 }
 
-export function PDFTotals({ products }: Props) {
+export function PDFTotals({ products, currency }: Props) {
   const total = products.reduce(
     (sum, p) => sum + p.price * p.quantity,
     0
@@ -42,7 +44,7 @@ export function PDFTotals({ products }: Props) {
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>Total:</Text>
         <Text style={styles.totalValue}>
-          ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatCurrency(total, currency)}
         </Text>
       </View>
     </View>

@@ -36,6 +36,7 @@ export interface InvoiceData {
   sender: Party;
   receiver: Party;
   products: Product[];
+  currency: string;
 }
 
 export interface UserSettings {
@@ -46,6 +47,7 @@ export interface UserSettings {
   defaultMonth: number | null; // 0-11, null = use previous month
   customTemplates: CustomDateTemplate[];
   lastInvoiceNumber: number;
+  currency: string;
 }
 
 export const DEFAULT_SENDER_FIELDS: Field[] = [
@@ -68,4 +70,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   defaultMonth: null,
   customTemplates: [],
   lastInvoiceNumber: 0,
+  currency: "USD",
 };
