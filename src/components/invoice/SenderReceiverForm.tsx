@@ -42,7 +42,7 @@ export function SenderReceiverForm({ title, party, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <h3 className="font-sans text-lg font-bold">{title}</h3>
       <div className="space-y-3">
         {party.fields.map((field) => (
           <div key={field.id} className="space-y-1.5">

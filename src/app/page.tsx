@@ -91,7 +91,7 @@ export default function Dashboard() {
   if (!loaded) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <Loader2 className="size-6 animate-spin text-primary/60" />
       </div>
     );
   }
@@ -102,10 +102,18 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="mx-auto max-w-2xl px-4 py-6 space-y-6 md:space-y-8">
+    <div className="min-h-screen bg-background pb-28">
+      <div className="mx-auto max-w-2xl px-4 py-8 space-y-8">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Invoice Generator</h1>
+          <div>
+            <h1 className="font-sans text-3xl font-extrabold tracking-tight">
+              Invoices
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Generate and download PDF invoices
+            </p>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -119,80 +127,84 @@ export default function Dashboard() {
 
         {/* Party Summary */}
         <div className="grid gap-4 md:grid-cols-2">
-          <Card size="sm">
+          <Card size="sm" className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
-                Your Details
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                From
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {settings.sender.fields
-                .filter((f) => f.value.trim())
-                .map((f) => (
-                  <p
-                    key={f.id}
-                    className={f.isBold ? "font-semibold" : "text-sm text-muted-foreground"}
-                  >
-                    {f.value}
-                  </p>
-                ))}
+              <div className="space-y-0.5">
+                {settings.sender.fields
+                  .filter((f) => f.value.trim())
+                  .map((f) => (
+                    <p
+                      key={f.id}
+                      className={f.isBold ? "font-semibold" : "text-sm text-muted-foreground"}
+                    >
+                      {f.value}
+                    </p>
+                  ))}
+              </div>
             </CardContent>
           </Card>
 
-          <Card size="sm">
+          <Card size="sm" className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Bill To
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {settings.receiver.fields
-                .filter((f) => f.value.trim())
-                .map((f) => (
-                  <p
-                    key={f.id}
-                    className={f.isBold ? "font-semibold" : "text-sm text-muted-foreground"}
-                  >
-                    {f.value}
-                  </p>
-                ))}
+              <div className="space-y-0.5">
+                {settings.receiver.fields
+                  .filter((f) => f.value.trim())
+                  .map((f) => (
+                    <p
+                      key={f.id}
+                      className={f.isBold ? "font-semibold" : "text-sm text-muted-foreground"}
+                    >
+                      {f.value}
+                    </p>
+                  ))}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Products Summary */}
-        <Card size="sm">
+        <Card size="sm" className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              Items
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Line Items
             </CardTitle>
           </CardHeader>
           <CardContent>
             {settings.products.length === 0 ? (
               <p className="text-sm text-muted-foreground">No products configured</p>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {settings.products.map((p) => (
                   <div
                     key={p.id}
-                    className="flex justify-between text-sm"
+                    className="flex items-center justify-between text-sm"
                   >
-                    <span>
-                      {p.name}{" "}
-                      <span className="text-muted-foreground">
+                    <span className="flex items-baseline gap-2">
+                      <span className="font-medium">{p.name}</span>
+                      <span className="text-xs text-muted-foreground">
                         x{p.quantity}
                       </span>
                     </span>
-                    <span className="font-medium">
+                    <span className="font-mono text-sm font-medium tabular-nums">
                       ${(p.price * p.quantity).toLocaleString("en-US", {
                         minimumFractionDigits: 2,
                       })}
                     </span>
                   </div>
                 ))}
-                <div className="flex justify-between pt-2 border-t font-semibold">
-                  <span>Total</span>
-                  <span>
+                <div className="flex items-center justify-between border-t pt-3 mt-3">
+                  <span className="font-sans text-sm font-bold">Total</span>
+                  <span className="font-mono text-base font-bold tabular-nums">
                     ${total.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                     })}
@@ -204,9 +216,9 @@ export default function Dashboard() {
         </Card>
 
         {/* Date Template */}
-        <Card size="sm">
+        <Card size="sm" className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Invoice Period
             </CardTitle>
           </CardHeader>
@@ -221,15 +233,15 @@ export default function Dashboard() {
         </Card>
 
         {/* Invoice Info */}
-        <Card size="sm">
+        <Card size="sm" className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Invoice Details
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground" htmlFor="invoiceNumber">
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground" htmlFor="invoiceNumber">
                 Invoice Number
               </label>
               <div className="relative">
@@ -242,13 +254,13 @@ export default function Dashboard() {
                       setFileName(e.target.value);
                     }
                   }}
-                  className="pr-8"
+                  className="pr-8 font-mono"
                 />
                 <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground" htmlFor="fileName">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground" htmlFor="fileName">
                 File Name
               </label>
               <div className="relative">
@@ -259,13 +271,13 @@ export default function Dashboard() {
                     setFileName(e.target.value);
                     setFileNameManuallyEdited(true);
                   }}
-                  className="pr-8"
+                  className="pr-8 font-mono"
                 />
                 <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
               </div>
               <p className="text-xs text-muted-foreground">.pdf will be appended automatically</p>
             </div>
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-muted-foreground text-center pt-1">
               Invoice date: <span className="font-medium text-foreground">{formatDate(new Date())}</span>
             </p>
           </CardContent>
@@ -273,11 +285,11 @@ export default function Dashboard() {
       </div>
 
       {/* Sticky Generate Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t p-4">
         <div className="mx-auto max-w-2xl">
           <Button
             size="lg"
-            className="w-full h-12 text-base gap-2"
+            className="w-full h-12 text-base gap-2 font-sans font-bold shadow-lg shadow-primary/20"
             onClick={handleGenerate}
             disabled={generating}
           >

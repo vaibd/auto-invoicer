@@ -45,7 +45,8 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-4 py-6 space-y-6 md:space-y-8">
+      <div className="mx-auto max-w-2xl px-4 py-8 space-y-8">
+        {/* Header */}
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -54,12 +55,19 @@ export default function SetupPage() {
           >
             <ArrowLeft className="size-5" />
           </Button>
-          <h1 className="text-2xl font-bold">Setup</h1>
+          <div>
+            <h1 className="font-sans text-3xl font-extrabold tracking-tight">
+              Setup
+            </h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Configure your invoice defaults
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-
+        {/* Sender / Receiver */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="shadow-sm">
             <CardContent>
               <SenderReceiverForm
                 title="Your Details"
@@ -71,7 +79,7 @@ export default function SetupPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardContent>
               <SenderReceiverForm
                 title="Bill To"
@@ -84,7 +92,8 @@ export default function SetupPage() {
           </Card>
         </div>
 
-        <Card>
+        {/* Products */}
+        <Card className="shadow-sm">
           <CardContent>
             <ProductForm
               products={settings.products}
@@ -95,12 +104,13 @@ export default function SetupPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Date Settings */}
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="font-bold">Date Settings</CardTitle>
+            <CardTitle className="font-sans font-bold">Date Settings</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
+          <CardContent className="space-y-5">
+            <div className="space-y-2">
               <Label>Default Date Template</Label>
               <Select
                 value={settings.defaultTemplateId}
@@ -123,7 +133,7 @@ export default function SetupPage() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>Default Month (optional)</Label>
               <Select
                 value={
@@ -165,10 +175,11 @@ export default function SetupPage() {
           </CardContent>
         </Card>
 
+        {/* Save */}
         <div className="pb-8">
           <Button
             size="lg"
-            className="w-full h-12 text-base"
+            className="w-full h-12 text-base font-sans font-bold shadow-lg shadow-primary/20"
             onClick={handleSave}
           >
             Save Settings

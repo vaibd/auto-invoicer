@@ -31,7 +31,7 @@ export function ProductForm({ products, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Products / Services</h3>
+      <h3 className="font-sans text-lg font-bold">Products / Services</h3>
 
       {products.length === 0 && (
         <p className="text-sm text-muted-foreground">
