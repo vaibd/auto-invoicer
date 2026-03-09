@@ -410,8 +410,8 @@ export default function Dashboard() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Invoice Details
               </p>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground" htmlFor="invoiceNumber">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block" htmlFor="invoiceNumber">
                   Invoice Number / File Name
                 </label>
                 <div className="flex items-center gap-1.5">
@@ -419,7 +419,7 @@ export default function Dashboard() {
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="shrink-0 size-9"
+                    className="shrink-0 size-8"
                     onClick={() => adjustInvoiceNumber(-1)}
                   >
                     <Minus className="size-4" />
@@ -434,13 +434,13 @@ export default function Dashboard() {
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="shrink-0 size-9"
+                    className="shrink-0 size-8"
                     onClick={() => adjustInvoiceNumber(1)}
                   >
                     <Plus className="size-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">.pdf will be appended automatically</p>
+                <p className="text-xs text-muted-foreground mt-2">.pdf will be appended automatically</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground" htmlFor="invoiceDate">
