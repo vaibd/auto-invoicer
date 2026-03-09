@@ -46,18 +46,21 @@ export function SenderReceiverForm({ title, party, onChange }: Props) {
       <div className="space-y-3">
         {party.fields.map((field) => (
           <div key={field.id} className="space-y-1.5">
-            {isDefault(field.id) ? (
+            {isDefault(field.id) && (
               <Label htmlFor={`${title}-${field.id}`}>{field.label}</Label>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={field.label}
-                  onChange={(e) =>
-                    updateField(field.id, { label: e.target.value })
-                  }
-                  placeholder="Field label"
-                  className="h-7 text-xs w-32"
-                />
+            )}
+            <div className="flex items-center gap-2">
+              <Input
+                id={`${title}-${field.id}`}
+                value={field.value}
+                onChange={(e) =>
+                  updateField(field.id, { value: e.target.value })
+                }
+                placeholder={isDefault(field.id) ? field.label : "Custom field"}
+                type={field.id === "email" ? "email" : "text"}
+                className="h-12 md:h-9"
+              />
+              {!isDefault(field.id) && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -66,18 +69,8 @@ export function SenderReceiverForm({ title, party, onChange }: Props) {
                 >
                   <Trash2 className="size-3.5 text-destructive" />
                 </Button>
-              </div>
-            )}
-            <Input
-              id={`${title}-${field.id}`}
-              value={field.value}
-              onChange={(e) =>
-                updateField(field.id, { value: e.target.value })
-              }
-              placeholder={field.label || "Value"}
-              type={field.id === "email" ? "email" : "text"}
-              className="h-12 md:h-9"
-            />
+              )}
+            </div>
           </div>
         ))}
       </div>

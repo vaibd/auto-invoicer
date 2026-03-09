@@ -124,7 +124,9 @@ export default function SetupPage() {
                 }}
               >
                 <SelectTrigger className="w-full h-12 md:h-9">
-                  <SelectValue />
+                  <SelectValue>
+                    {BUILT_IN_TEMPLATES.find((t) => t.id === settings.defaultTemplateId)?.label ?? "Select template"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {BUILT_IN_TEMPLATES.map((t) => (
@@ -153,7 +155,11 @@ export default function SetupPage() {
                 }}
               >
                 <SelectTrigger className="w-full h-12 md:h-9">
-                  <SelectValue />
+                  <SelectValue>
+                    {settings.defaultMonth !== null
+                      ? MONTHS[settings.defaultMonth]
+                      : "Auto (previous month)"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto">
