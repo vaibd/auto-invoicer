@@ -47,6 +47,7 @@ export default function Dashboard() {
   });
   const [customYear, setCustomYear] = useState(() => new Date().getFullYear());
   const [customRange, setCustomRange] = useState<RangeType>("full");
+  const [invoiceDate, setInvoiceDate] = useState(() => new Date());
 
   useEffect(() => {
     if (!hasSetup()) {
@@ -87,7 +88,7 @@ export default function Dashboard() {
 
       const data = {
         invoiceNumber,
-        invoiceDate: new Date(),
+        invoiceDate,
         from: resolved.from,
         to: resolved.to,
         sender: settings.sender,
@@ -386,9 +387,21 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs text-muted-foreground">.pdf will be appended automatically</p>
               </div>
-              <p className="text-xs text-muted-foreground text-center pt-1">
-                Invoice date: <span className="font-medium text-foreground">{formatDate(new Date())}</span>
-              </p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="invoiceDate">
+                  Invoice Date
+                </label>
+                <Input
+                  id="invoiceDate"
+                  type="date"
+                  value={invoiceDate.toISOString().split("T")[0]}
+                  onChange={(e) => {
+                    const d = new Date(e.target.value + "T00:00:00");
+                    if (!isNaN(d.getTime())) setInvoiceDate(d);
+                  }}
+                  className="font-mono text-center"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
