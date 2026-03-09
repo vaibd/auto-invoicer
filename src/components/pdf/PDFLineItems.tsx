@@ -3,7 +3,7 @@ import { Product } from "@/lib/types";
 
 const styles = StyleSheet.create({
   table: {
-    marginTop: 24,
+    marginTop: 48,
   },
   headerRow: {
     flexDirection: "row",

@@ -59,9 +59,7 @@ export default function SetupPage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Your Details</CardTitle>
-            </CardHeader>
+
             <CardContent>
               <SenderReceiverForm
                 title="Your Details"
@@ -74,9 +72,6 @@ export default function SetupPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Bill To (Client)</CardTitle>
-            </CardHeader>
             <CardContent>
               <SenderReceiverForm
                 title="Bill To"
@@ -90,9 +85,6 @@ export default function SetupPage() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Products / Services</CardTitle>
-          </CardHeader>
           <CardContent>
             <ProductForm
               products={settings.products}
@@ -105,7 +97,7 @@ export default function SetupPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Date Settings</CardTitle>
+            <CardTitle className="font-bold">Date Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
