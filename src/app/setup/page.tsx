@@ -20,11 +20,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
 export default function SetupPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
@@ -131,46 +126,6 @@ export default function SetupPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Default Month (optional)</Label>
-              <Select
-                value={
-                  settings.defaultMonth !== null
-                    ? String(settings.defaultMonth)
-                    : "auto"
-                }
-                onValueChange={(v) => {
-                  if (v === null) return;
-                  setSettings((s) => ({
-                    ...s,
-                    defaultMonth: v === "auto" ? null : parseInt(v),
-                  }));
-                }}
-              >
-                <SelectTrigger className="w-full h-12 md:h-9">
-                  <SelectValue>
-                    {settings.defaultMonth !== null
-                      ? MONTHS[settings.defaultMonth]
-                      : "Auto (previous month)"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">
-                    Auto (previous month)
-                  </SelectItem>
-                  {MONTHS.map((m, i) => (
-                    <SelectItem key={i} value={String(i)}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                When set, templates will use this month instead of the
-                previous calendar month.
-              </p>
             </div>
           </CardContent>
         </Card>

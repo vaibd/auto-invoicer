@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, FileText, Loader2, Pencil } from "lucide-react";
+import { Settings, FileText, Loader2, Minus, Plus } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
@@ -39,8 +39,6 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [fileNameManuallyEdited, setFileNameManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState<"current" | "custom">("current");
   const [customMonth, setCustomMonth] = useState(() => {
     const prev = new Date();
@@ -60,9 +58,17 @@ export default function Dashboard() {
     setSelectedTemplate(s.defaultTemplateId);
     const nextNum = peekNextInvoiceNumber();
     setInvoiceNumber(nextNum);
-    setFileName(nextNum);
     setLoaded(true);
   }, [router]);
+
+  const adjustInvoiceNumber = (delta: number) => {
+    const match = invoiceNumber.match(/^(.*?)(\d+)$/);
+    if (!match) return;
+    const prefix = match[1];
+    const padLen = match[2].length;
+    const newNum = Math.max(1, parseInt(match[2], 10) + delta);
+    setInvoiceNumber(`${prefix}${String(newNum).padStart(padLen, "0")}`);
+  };
 
   const resolved =
     activeTab === "custom"
@@ -89,7 +95,7 @@ export default function Dashboard() {
         products: settings.products,
       };
 
-      const pdfFileName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
+      const pdfFileName = invoiceNumber.endsWith(".pdf") ? invoiceNumber : `${invoiceNumber}.pdf`;
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
       saveAs(blob, pdfFileName);
       toast.success(`Invoice #${invoiceNumber} downloaded`);
@@ -99,16 +105,13 @@ export default function Dashboard() {
       setSettings(s);
       const nextNum = peekNextInvoiceNumber();
       setInvoiceNumber(nextNum);
-      if (!fileNameManuallyEdited) {
-        setFileName(nextNum);
-      }
     } catch (err) {
       console.error("PDF generation failed:", err);
       toast.error("Failed to generate invoice. Please try again.");
     } finally {
       setGenerating(false);
     }
-  }, [settings, resolved, invoiceNumber, fileName, fileNameManuallyEdited]);
+  }, [settings, resolved, invoiceNumber]);
 
   if (!loaded) {
     return (
@@ -353,38 +356,33 @@ export default function Dashboard() {
               </p>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground" htmlFor="invoiceNumber">
-                  Invoice Number
+                  Invoice Number / File Name
                 </label>
-                <div className="relative">
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 size-9"
+                    onClick={() => adjustInvoiceNumber(-1)}
+                  >
+                    <Minus className="size-4" />
+                  </Button>
                   <Input
                     id="invoiceNumber"
                     value={invoiceNumber}
-                    onChange={(e) => {
-                      setInvoiceNumber(e.target.value);
-                      if (!fileNameManuallyEdited) {
-                        setFileName(e.target.value);
-                      }
-                    }}
-                    className="pr-8 font-mono"
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    className="font-mono text-center"
                   />
-                  <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground" htmlFor="fileName">
-                  File Name
-                </label>
-                <div className="relative">
-                  <Input
-                    id="fileName"
-                    value={fileName}
-                    onChange={(e) => {
-                      setFileName(e.target.value);
-                      setFileNameManuallyEdited(true);
-                    }}
-                    className="pr-8 font-mono"
-                  />
-                  <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 size-9"
+                    onClick={() => adjustInvoiceNumber(1)}
+                  >
+                    <Plus className="size-4" />
+                  </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">.pdf will be appended automatically</p>
               </div>

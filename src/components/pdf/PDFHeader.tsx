@@ -47,7 +47,7 @@ export function PDFHeader({ invoiceNumber, invoiceDate, from, to }: Props) {
       <View style={styles.accentBar} />
       <View style={styles.row}>
         <Text style={styles.title}>INVOICE</Text>
-        <View>
+        <View style={{ alignItems: "flex-end" }}>
           <Text style={styles.invoiceNumber}>#{invoiceNumber}</Text>
           <Text style={styles.meta}>Date: {formatDate(invoiceDate)}</Text>
           <Text style={styles.meta}>
