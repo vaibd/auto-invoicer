@@ -9,13 +9,28 @@ import { toast } from "sonner";
 
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, hasSetup } from "@/lib/storage";
-import { resolveTemplate, formatDate } from "@/lib/date-templates";
+import {
+  resolveTemplate,
+  resolveForMonth,
+  formatDate,
+  formatDateRange,
+  RANGE_OPTIONS,
+  type RangeType,
+} from "@/lib/date-templates";
 import { getNextInvoiceNumber, peekNextInvoiceNumber } from "@/lib/invoice-number";
 import { DateTemplateSelector } from "@/components/invoice/DateTemplateSelector";
 import { InvoicePDF } from "@/components/pdf/InvoicePDF";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -26,6 +41,14 @@ export default function Dashboard() {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [fileName, setFileName] = useState("");
   const [fileNameManuallyEdited, setFileNameManuallyEdited] = useState(false);
+  const [activeTab, setActiveTab] = useState<"current" | "custom">("current");
+  const [customMonth, setCustomMonth] = useState(() => {
+    const prev = new Date();
+    prev.setMonth(prev.getMonth() - 1);
+    return prev.getMonth();
+  });
+  const [customYear, setCustomYear] = useState(() => new Date().getFullYear());
+  const [customRange, setCustomRange] = useState<RangeType>("full");
 
   useEffect(() => {
     if (!hasSetup()) {
@@ -41,11 +64,10 @@ export default function Dashboard() {
     setLoaded(true);
   }, [router]);
 
-  const resolved = resolveTemplate(
-    selectedTemplate,
-    settings.defaultMonth,
-    settings.customTemplates
-  );
+  const resolved =
+    activeTab === "custom"
+      ? resolveForMonth(customMonth, customYear, customRange)
+      : resolveTemplate(selectedTemplate, settings.defaultMonth, settings.customTemplates);
 
   const handleGenerate = useCallback(async () => {
     if (settings.products.length === 0) {
@@ -215,71 +237,161 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Date Template */}
+        {/* Invoice Period & Details */}
         <Card size="sm" className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Invoice Period
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <DateTemplateSelector
-              selectedId={selectedTemplate}
-              onSelect={setSelectedTemplate}
-              customTemplates={settings.customTemplates}
-              defaultMonth={settings.defaultMonth}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Invoice Info */}
-        <Card size="sm" className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Invoice Details
-            </CardTitle>
-          </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="invoiceNumber">
-                Invoice Number
-              </label>
-              <div className="relative">
-                <Input
-                  id="invoiceNumber"
-                  value={invoiceNumber}
-                  onChange={(e) => {
-                    setInvoiceNumber(e.target.value);
-                    if (!fileNameManuallyEdited) {
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as "current" | "custom")}
+            >
+              <TabsList>
+                <TabsTrigger value="current">Current</TabsTrigger>
+                <TabsTrigger value="custom">Custom</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="current">
+                <div className="space-y-4">
+                  <DateTemplateSelector
+                    selectedId={selectedTemplate}
+                    onSelect={setSelectedTemplate}
+                    customTemplates={settings.customTemplates}
+                    defaultMonth={settings.defaultMonth}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="custom">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Month
+                      </label>
+                      <Select
+                        value={customMonth}
+                        onValueChange={(v) => { if (v !== null) setCustomMonth(v as number); }}
+                      >
+                        <SelectTrigger className="w-full h-12 md:h-9">
+                          <SelectValue>
+                            {new Date(2000, customMonth).toLocaleString("en-US", { month: "long" })}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <SelectItem key={i} value={i}>
+                              {new Date(2000, i).toLocaleString("en-US", { month: "long" })}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Year
+                      </label>
+                      <Select
+                        value={customYear}
+                        onValueChange={(v) => { if (v !== null) setCustomYear(v as number); }}
+                      >
+                        <SelectTrigger className="w-full h-12 md:h-9">
+                          <SelectValue>{customYear}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 5 }, (_, i) => {
+                            const y = new Date().getFullYear() - 2 + i;
+                            return (
+                              <SelectItem key={y} value={y}>
+                                {y}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Range
+                    </label>
+                    <Select
+                      value={customRange}
+                      onValueChange={(v) => { if (v) setCustomRange(v as RangeType); }}
+                    >
+                      <SelectTrigger className="w-full h-12 md:h-9">
+                        <SelectValue>
+                          {RANGE_OPTIONS.find((o) => o.value === customRange)?.label}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RANGE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground">
+                    Period: {formatDateRange(resolved.from, resolved.to)}
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Invoice Details — shared across tabs */}
+            <div className="space-y-4 border-t pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Invoice Details
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="invoiceNumber">
+                  Invoice Number
+                </label>
+                <div className="relative">
+                  <Input
+                    id="invoiceNumber"
+                    value={invoiceNumber}
+                    onChange={(e) => {
+                      setInvoiceNumber(e.target.value);
+                      if (!fileNameManuallyEdited) {
+                        setFileName(e.target.value);
+                      }
+                    }}
+                    className="pr-8 font-mono"
+                  />
+                  <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="fileName">
+                  File Name
+                </label>
+                <div className="relative">
+                  <Input
+                    id="fileName"
+                    value={fileName}
+                    onChange={(e) => {
                       setFileName(e.target.value);
-                    }
-                  }}
-                  className="pr-8 font-mono"
-                />
-                <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                      setFileNameManuallyEdited(true);
+                    }}
+                    className="pr-8 font-mono"
+                  />
+                  <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                </div>
+                <p className="text-xs text-muted-foreground">.pdf will be appended automatically</p>
               </div>
+              <p className="text-xs text-muted-foreground text-center pt-1">
+                Invoice date: <span className="font-medium text-foreground">{formatDate(new Date())}</span>
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="fileName">
-                File Name
-              </label>
-              <div className="relative">
-                <Input
-                  id="fileName"
-                  value={fileName}
-                  onChange={(e) => {
-                    setFileName(e.target.value);
-                    setFileNameManuallyEdited(true);
-                  }}
-                  className="pr-8 font-mono"
-                />
-                <Pencil className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-              </div>
-              <p className="text-xs text-muted-foreground">.pdf will be appended automatically</p>
-            </div>
-            <p className="text-xs text-muted-foreground text-center pt-1">
-              Invoice date: <span className="font-medium text-foreground">{formatDate(new Date())}</span>
-            </p>
           </CardContent>
         </Card>
       </div>

@@ -30,6 +30,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 10,
     color: "#666",
+    textAlign: "right",
   },
 });
 

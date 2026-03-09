@@ -61,6 +61,40 @@ export function resolveTemplate(
   }
 }
 
+export type RangeType = "full" | "first-half" | "last-half";
+
+export const RANGE_OPTIONS: { value: RangeType; label: string }[] = [
+  { value: "full", label: "Full month" },
+  { value: "first-half", label: "1st – 15th" },
+  { value: "last-half", label: "16th – end" },
+];
+
+export function resolveForMonth(
+  month: number,
+  year: number,
+  rangeType: RangeType
+): { from: Date; to: Date } {
+  const lastDay = lastDayOfMonth(year, month);
+
+  switch (rangeType) {
+    case "full":
+      return {
+        from: new Date(year, month, 1),
+        to: new Date(year, month, lastDay),
+      };
+    case "first-half":
+      return {
+        from: new Date(year, month, 1),
+        to: new Date(year, month, 15),
+      };
+    case "last-half":
+      return {
+        from: new Date(year, month, 16),
+        to: new Date(year, month, lastDay),
+      };
+  }
+}
+
 export function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
     month: "short",
