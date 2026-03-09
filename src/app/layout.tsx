@@ -43,6 +43,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <meta name="darkreader-lock" />
+      </head>
       <body
         className="antialiased overflow-x-hidden scroll-smooth"
       >
