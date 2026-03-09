@@ -6,28 +6,10 @@ import { PDFLineItems } from "./PDFLineItems";
 import { PDFTotals } from "./PDFTotals";
 import { PDFFooter } from "./PDFFooter";
 
-Font.register({
-  family: "Inter",
-  fonts: [
-    {
-      src: "https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.woff2",
-      fontWeight: 400,
-    },
-    {
-      src: "https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.woff2",
-      fontWeight: 600,
-    },
-    {
-      src: "https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-700-normal.woff2",
-      fontWeight: 700,
-    },
-  ],
-});
-
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontSize: 10,
     color: "#333",
   },
