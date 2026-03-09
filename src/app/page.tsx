@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, FileText, Loader2, Minus, Plus, Eye, X, Download } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
@@ -195,15 +196,18 @@ export default function Dashboard() {
               Generate and download PDF invoices
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push("/setup")}
-            className="gap-1.5"
-          >
-            <Settings className="size-4" />
-            Setup
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/setup")}
+              className="gap-1.5"
+            >
+              <Settings className="size-4" />
+              Setup
+            </Button>
+          </div>
         </div>
 
         {/* Party Summary */}

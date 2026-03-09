@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, Download } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, saveSettings } from "@/lib/storage";
@@ -77,18 +78,21 @@ export default function SetupPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
-            <ArrowLeft className="size-5" />
-          </Button>
-          <div>
-            <h1 className="font-sans text-3xl font-extrabold tracking-tight">
-              Setup
-            </h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Configure your invoice defaults
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
+              <ArrowLeft className="size-5" />
+            </Button>
+            <div>
+              <h1 className="font-sans text-3xl font-extrabold tracking-tight">
+                Setup
+              </h1>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Configure your invoice defaults
+              </p>
+            </div>
           </div>
+          <ThemeToggle />
         </div>
 
         {/* Sender / Receiver */}
