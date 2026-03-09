@@ -45,7 +45,7 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-4 py-8 space-y-8">
+      <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button
