@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Upload, Download } from "lucide-react";
+import { ArrowLeft, Upload, Download, ChevronsUpDown, Check } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
@@ -21,6 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function SetupPage() {
@@ -28,11 +38,43 @@ export default function SetupPage() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     setSettings(getSettings());
     setLoaded(true);
   }, []);
+
+  const updateDropdownPos = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currencyOpen) return;
+    updateDropdownPos();
+    function onClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        triggerRef.current?.contains(target) ||
+        dropdownRef.current?.contains(target)
+      ) return;
+      setCurrencyOpen(false);
+    }
+    window.addEventListener("scroll", updateDropdownPos, true);
+    window.addEventListener("resize", updateDropdownPos);
+    document.addEventListener("mousedown", onClickOutside);
+    return () => {
+      window.removeEventListener("scroll", updateDropdownPos, true);
+      window.removeEventListener("resize", updateDropdownPos);
+      document.removeEventListener("mousedown", onClickOutside);
+    };
+  }, [currencyOpen, updateDropdownPos]);
 
   function handleSave() {
     saveSettings(settings);
@@ -138,25 +180,55 @@ export default function SetupPage() {
           <CardContent>
             <div className="space-y-2">
               <Label>Invoice Currency</Label>
-              <Select
-                value={settings.currency}
-                onValueChange={(v) => {
-                  if (v) setSettings((s) => ({ ...s, currency: v }));
-                }}>
-                <SelectTrigger className="w-full h-12 md:h-9">
-                  <SelectValue>
-                    {CURRENCIES.find((c) => c.code === settings.currency)
-                      ?.label ?? settings.currency}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <button
+                ref={triggerRef}
+                type="button"
+                onClick={() => setCurrencyOpen((o) => !o)}
+                className={cn(
+                  "flex h-12 md:h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                )}>
+                <span>
+                  {CURRENCIES.find((c) => c.code === settings.currency)
+                    ?.label ?? settings.currency}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </button>
+              {currencyOpen && createPortal(
+                <div
+                  ref={dropdownRef}
+                  className="fixed z-50 rounded-lg border bg-popover shadow-md"
+                  style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}>
+                  <Command>
+                    <CommandInput placeholder="Search currency..." />
+                    <CommandList>
+                      <CommandEmpty>No currency found.</CommandEmpty>
+                      <CommandGroup>
+                        {CURRENCIES.map((c) => (
+                          <CommandItem
+                            key={c.code}
+                            value={c.label}
+                            onSelect={() => {
+                              setSettings((s) => ({ ...s, currency: c.code }));
+                              setCurrencyOpen(false);
+                            }}>
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                settings.currency === c.code
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {c.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </div>,
+                document.body
+              )}
             </div>
           </CardContent>
         </Card>
