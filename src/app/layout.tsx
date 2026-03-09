@@ -38,9 +38,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased overflow-x-hidden scroll-smooth`}
+        className="antialiased overflow-x-hidden scroll-smooth"
       >
         <ThemeProvider>
           {children}
