@@ -36,13 +36,6 @@ export default function SetupPage() {
   }, []);
 
   function handleSave() {
-    const hasName = settings.sender.fields.some(
-      (f) => f.id === "name" && f.value.trim() !== ""
-    );
-    if (!hasName) {
-      toast.error("Please enter a sender name");
-      return;
-    }
     saveSettings(settings);
     toast.success("Settings saved");
     router.push("/");
@@ -67,11 +60,11 @@ export default function SetupPage() {
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Sender (You)</CardTitle>
+              <CardTitle>Your Details</CardTitle>
             </CardHeader>
             <CardContent>
               <SenderReceiverForm
-                title="Sender"
+                title="Your Details"
                 party={settings.sender}
                 onChange={(sender) =>
                   setSettings((s) => ({ ...s, sender }))
@@ -82,11 +75,11 @@ export default function SetupPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Receiver (Client)</CardTitle>
+              <CardTitle>Bill To (Client)</CardTitle>
             </CardHeader>
             <CardContent>
               <SenderReceiverForm
-                title="Receiver"
+                title="Bill To"
                 party={settings.receiver}
                 onChange={(receiver) =>
                   setSettings((s) => ({ ...s, receiver }))

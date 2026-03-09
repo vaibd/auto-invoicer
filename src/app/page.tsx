@@ -117,12 +117,12 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        {/* Sender / Receiver Summary */}
+        {/* Party Summary */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card size="sm">
             <CardHeader>
               <CardTitle className="text-sm text-muted-foreground">
-                From
+                Your Details
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -142,7 +142,7 @@ export default function Dashboard() {
           <Card size="sm">
             <CardHeader>
               <CardTitle className="text-sm text-muted-foreground">
-                To
+                Bill To
               </CardTitle>
             </CardHeader>
             <CardContent>

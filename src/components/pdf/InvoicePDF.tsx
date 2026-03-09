@@ -35,8 +35,8 @@ export function InvoicePDF({ data }: Props) {
           to={data.to}
         />
         <View style={styles.partyRow}>
-          <PDFPartyInfo label="From" party={data.sender} />
-          <PDFPartyInfo label="To" party={data.receiver} />
+          <PDFPartyInfo label="Your Details" party={data.sender} showLabel={false} />
+          <PDFPartyInfo label="Bill To" party={data.receiver} align="right" />
         </View>
         <PDFLineItems products={data.products} />
         <PDFTotals products={data.products} />

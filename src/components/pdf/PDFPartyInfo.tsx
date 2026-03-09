@@ -5,6 +5,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  containerRight: {
+    flex: 1,
+    alignItems: "flex-end" as const,
+  },
   label: {
     fontSize: 9,
     color: "#999",
@@ -28,12 +32,14 @@ const styles = StyleSheet.create({
 interface Props {
   label: string;
   party: Party;
+  align?: "left" | "right";
+  showLabel?: boolean;
 }
 
-export function PDFPartyInfo({ label, party }: Props) {
+export function PDFPartyInfo({ label, party, align = "left", showLabel = true }: Props) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={align === "right" ? styles.containerRight : styles.container}>
+      {showLabel && <Text style={styles.label}>{label}</Text>}
       {party.fields
         .filter((f) => f.value.trim() !== "")
         .map((field) => (
