@@ -245,10 +245,10 @@ export default function SetupPage() {
   if (!loaded) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-page-gradient">
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
               <ArrowLeft className="size-5" />
@@ -266,7 +266,7 @@ export default function SetupPage() {
         </div>
 
         {/* Sender / Receiver */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 animate-fade-in-up delay-1">
           <Card className="shadow-sm">
             <CardContent>
               <SenderReceiverForm
@@ -291,7 +291,7 @@ export default function SetupPage() {
         </div>
 
         {/* Products */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm animate-fade-in-up delay-2">
           <CardContent>
             <ProductForm
               products={settings.products}
@@ -301,7 +301,7 @@ export default function SetupPage() {
         </Card>
 
         {/* Currency */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm animate-fade-in-up delay-3">
           <CardHeader>
             <CardTitle className="font-sans font-bold">Currency</CardTitle>
           </CardHeader>
@@ -362,7 +362,7 @@ export default function SetupPage() {
         </Card>
 
         {/* Footer Text */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm animate-fade-in-up delay-4">
           <CardHeader>
             <CardTitle className="font-sans font-bold">Footer</CardTitle>
           </CardHeader>
@@ -386,7 +386,7 @@ export default function SetupPage() {
         </Card>
 
         {/* Date Settings */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm animate-fade-in-up delay-5">
           <CardHeader>
             <CardTitle className="font-sans font-bold">Date Settings</CardTitle>
           </CardHeader>
@@ -550,7 +550,7 @@ export default function SetupPage() {
         </Card>
 
         {/* Export & Import */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm animate-fade-in-up delay-6">
           <CardHeader>
             <CardTitle className="font-sans font-bold">
               Export & Import
@@ -587,7 +587,7 @@ export default function SetupPage() {
         </Card>
 
         {/* Danger Zone */}
-        <Card className="shadow-sm border-destructive/30">
+        <Card className="shadow-sm border-destructive/30 animate-fade-in-up delay-7">
           <CardHeader>
             <CardTitle className="font-sans font-bold text-destructive">
               Danger Zone

@@ -199,10 +199,10 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-page-gradient pb-28">
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between animate-fade-in">
           <div>
             <h1 className="font-sans text-3xl font-extrabold tracking-tight">
               Invoices
@@ -226,7 +226,7 @@ export default function Dashboard() {
         </div>
 
         {/* Party Summary */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 animate-fade-in-up delay-1">
           <Card size="sm" className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -273,7 +273,7 @@ export default function Dashboard() {
         </div>
 
         {/* Products Summary */}
-        <Card size="sm" className="shadow-sm">
+        <Card size="sm" className="shadow-sm animate-fade-in-up delay-2">
           <CardHeader>
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Line Items
@@ -312,7 +312,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Invoice Period & Details */}
-        <Card size="sm" className="shadow-sm">
+        <Card size="sm" className="shadow-sm animate-fade-in-up delay-3">
           <CardHeader>
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Invoice Period
