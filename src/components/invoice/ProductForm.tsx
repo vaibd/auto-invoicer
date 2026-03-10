@@ -69,6 +69,7 @@ export function ProductForm({ products, onChange }: Props) {
                   updateProduct(product.id, { name: e.target.value })
                 }
                 placeholder="e.g. Web Development"
+                className="pt-0 pb-1"
               />
             </div>
 
