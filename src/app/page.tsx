@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, FileText, Loader2, Minus, Plus, Eye, X, Download } from "lucide-react";
+import { Settings, Loader2, Minus, Plus, Eye, X, Download } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
@@ -334,8 +334,8 @@ export default function Dashboard() {
                         Month
                       </label>
                       <Select
-                        value={customMonth}
-                        onValueChange={(v) => { if (v !== null) setCustomMonth(v as number); }}
+                        value={String(customMonth)}
+                        onValueChange={(v) => { if (v !== null) setCustomMonth(Number(v)); }}
                       >
                         <SelectTrigger className="w-full h-12 md:h-9">
                           <SelectValue>
@@ -344,7 +344,7 @@ export default function Dashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           {Array.from({ length: 12 }, (_, i) => (
-                            <SelectItem key={i} value={i}>
+                            <SelectItem key={i} value={String(i)}>
                               {new Date(2000, i).toLocaleString("en-US", { month: "long" })}
                             </SelectItem>
                           ))}
@@ -357,8 +357,8 @@ export default function Dashboard() {
                         Year
                       </label>
                       <Select
-                        value={customYear}
-                        onValueChange={(v) => { if (v !== null) setCustomYear(v as number); }}
+                        value={String(customYear)}
+                        onValueChange={(v) => { if (v !== null) setCustomYear(Number(v)); }}
                       >
                         <SelectTrigger className="w-full h-12 md:h-9">
                           <SelectValue>{customYear}</SelectValue>
@@ -367,7 +367,7 @@ export default function Dashboard() {
                           {Array.from({ length: 5 }, (_, i) => {
                             const y = new Date().getFullYear() - 2 + i;
                             return (
-                              <SelectItem key={y} value={y}>
+                              <SelectItem key={y} value={String(y)}>
                                 {y}
                               </SelectItem>
                             );
@@ -421,7 +421,7 @@ export default function Dashboard() {
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="shrink-0 size-8"
+                    className="shrink-0 h-12 w-10 md:h-9 md:w-8 rounded-sm"
                     onClick={() => adjustInvoiceNumber(-1)}
                   >
                     <Minus className="size-4" />
@@ -430,13 +430,13 @@ export default function Dashboard() {
                     id="invoiceNumber"
                     value={invoiceNumber}
                     onChange={(e) => setInvoiceNumber(e.target.value)}
-                    className="font-mono text-center"
+                    className="font-mono text-center h-12 md:h-9"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="shrink-0 size-8"
+                    className="shrink-0 h-12 w-10 md:h-9 md:w-8 rounded-sm"
                     onClick={() => adjustInvoiceNumber(1)}
                   >
                     <Plus className="size-4" />
@@ -456,7 +456,7 @@ export default function Dashboard() {
                     const d = new Date(e.target.value + "T00:00:00");
                     if (!isNaN(d.getTime())) setInvoiceDate(d);
                   }}
-                  className="font-mono text-center"
+                  className="font-mono text-center h-12 md:h-9"
                 />
               </div>
             </div>
@@ -495,12 +495,12 @@ export default function Dashboard() {
             {generating ? (
               <>
                 <Loader2 className="size-5 animate-spin" />
-                Generating...
+                Downloading...
               </>
             ) : (
               <>
-                <FileText className="size-5" />
-                Generate
+                <Download className="size-5" />
+                Download
               </>
             )}
           </Button>
