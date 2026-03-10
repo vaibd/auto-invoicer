@@ -69,7 +69,6 @@ export function ProductForm({ products, onChange }: Props) {
                   updateProduct(product.id, { name: e.target.value })
                 }
                 placeholder="e.g. Web Development"
-                className="h-12 md:h-9"
               />
             </div>
 
@@ -90,7 +89,6 @@ export function ProductForm({ products, onChange }: Props) {
                     });
                   }}
                   placeholder="0.00"
-                  className="h-12 md:h-9"
                 />
               </div>
               <div className="space-y-1.5">
@@ -109,7 +107,6 @@ export function ProductForm({ products, onChange }: Props) {
                     });
                   }}
                   placeholder="1"
-                  className="h-12 md:h-9"
                 />
               </div>
             </div>

@@ -80,7 +80,7 @@ function CustomTemplateBuilder({
             setBase(b);
             if (b === "today" && mode === "full") setMode("last-n");
           }}>
-            <SelectTrigger className="w-full h-12 md:h-9">
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -95,7 +95,7 @@ function CustomTemplateBuilder({
         <div className="space-y-1.5">
           <label className="text-xs text-muted-foreground">Range</label>
           <Select value={mode} onValueChange={(v) => setMode(v as TemplateMode)}>
-            <SelectTrigger className="w-full h-12 md:h-9">
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -313,8 +313,8 @@ export default function SetupPage() {
                 type="button"
                 onClick={() => setCurrencyOpen((o) => !o)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  "flex h-7 w-full items-center justify-between rounded-sm border border-input bg-transparent px-2 text-sm",
+                  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 )}>
                 <span>
                   {CURRENCIES.find((c) => c.code === settings.currency)
@@ -369,7 +369,7 @@ export default function SetupPage() {
           <CardContent>
             <div className="space-y-2">
               <Label htmlFor="footerText">Invoice Footer Text</Label>
-              <input
+              <Input
                 id="footerText"
                 type="text"
                 value={settings.footerText}
@@ -377,7 +377,6 @@ export default function SetupPage() {
                   setSettings((s) => ({ ...s, footerText: e.target.value }))
                 }
                 placeholder="Thank you for your business!"
-                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <p className="text-xs text-muted-foreground">
                 Leave empty to hide the footer on the PDF.
@@ -399,7 +398,7 @@ export default function SetupPage() {
                 onValueChange={(v) => {
                   if (v) setSettings((s) => ({ ...s, defaultTemplateId: v }));
                 }}>
-                <SelectTrigger className="w-full h-12 md:h-9">
+                <SelectTrigger className="w-full">
                   <SelectValue>
                     {[...BUILT_IN_TEMPLATES, ...settings.customTemplates].find(
                       (t) => t.id === settings.defaultTemplateId
