@@ -337,7 +337,7 @@ export default function SetupPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Permanently delete all settings, invoice numbers, and stored data.
+              Permanently delete all settings, invoice numbers, and stored data in the browser.
             </p>
             {confirmDelete ? (
               <div className="flex gap-3">
