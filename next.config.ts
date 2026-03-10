@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; frame-src blob:; connect-src 'self' https://va.vercel-scripts.com https://vitals.vercel-insights.com; object-src 'none'; base-uri 'self'",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; frame-src blob:; connect-src 'self' https://va.vercel-scripts.com https://vitals.vercel-insights.com; object-src 'none'; base-uri 'self'",
           },
           {
             key: "X-Frame-Options",

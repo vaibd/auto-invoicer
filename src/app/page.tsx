@@ -89,9 +89,6 @@ export default function Dashboard() {
     }
     setGenerating(true);
     try {
-      // Increment the persistent counter
-      getNextInvoiceNumber();
-
       const data: InvoiceData = {
         invoiceNumber,
         invoiceDate,
@@ -108,6 +105,9 @@ export default function Dashboard() {
       const pdfFileName = `${safeName}.pdf`;
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
       saveAs(blob, pdfFileName);
+
+      // Increment only after successful generation & download
+      getNextInvoiceNumber();
       toast.success(`Invoice #${invoiceNumber} downloaded`);
 
       // Refresh settings and set next invoice number
