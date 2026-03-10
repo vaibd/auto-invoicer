@@ -143,9 +143,19 @@ export default function Dashboard() {
       };
 
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      setPreviewBlob(blob);
-      setPreviewUrl(url);
+
+      // Mobile browsers can't render PDFs in iframes — open directly instead
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        // Revoke after a delay to give the browser time to load
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } else {
+        const url = URL.createObjectURL(blob);
+        setPreviewBlob(blob);
+        setPreviewUrl(url);
+      }
     } catch (err) {
       console.error("PDF preview failed:", err);
       toast.error("Failed to generate preview. Please try again.");
