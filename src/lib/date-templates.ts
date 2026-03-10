@@ -1,4 +1,4 @@
-import { DateTemplate, CustomDateTemplate } from "./types";
+import { DateTemplate, CustomDateTemplate, TemplateBase, TemplateMode } from "./types";
 
 export const BUILT_IN_TEMPLATES: DateTemplate[] = [
   { id: "prev-full", label: "Previous month (full)" },
@@ -7,6 +7,36 @@ export const BUILT_IN_TEMPLATES: DateTemplate[] = [
   { id: "curr-last-15-days", label: "Current month (last 15 days)" },
   { id: "next-last-15-days", label: "Next month (first 15 days)" },
   { id: "next-full", label: "Next month (full)" },
+];
+
+export function generateTemplateLabel(
+  base: TemplateBase,
+  mode: TemplateMode,
+  days?: number
+): string {
+  if (base === "today") {
+    if (mode === "last-n") return `Last ${days ?? 7} days`;
+    if (mode === "first-n") return `Next ${days ?? 7} days`;
+    return "Today";
+  }
+  const baseLabel =
+    base === "previous" ? "Previous month" : base === "current" ? "Current month" : "Next month";
+  if (mode === "full") return `${baseLabel} (full)`;
+  if (mode === "first-n") return `${baseLabel} (first ${days ?? 15} days)`;
+  return `${baseLabel} (last ${days ?? 15} days)`;
+}
+
+export const TEMPLATE_PRESETS: { base: TemplateBase; mode: TemplateMode; days?: number }[] = [
+  { base: "today", mode: "last-n", days: 7 },
+  { base: "today", mode: "first-n", days: 7 },
+  { base: "today", mode: "last-n", days: 30 },
+  { base: "previous", mode: "first-n", days: 7 },
+  { base: "previous", mode: "last-n", days: 7 },
+  { base: "previous", mode: "first-n", days: 10 },
+  { base: "current", mode: "first-n", days: 7 },
+  { base: "current", mode: "last-n", days: 7 },
+  { base: "current", mode: "first-n", days: 10 },
+  { base: "next", mode: "first-n", days: 7 },
 ];
 
 function getTargetMonth(
@@ -26,6 +56,62 @@ function lastDayOfMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
+function resolveCustomTemplate(template: CustomDateTemplate): { from: Date; to: Date } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (template.base === "today") {
+    const days = template.days ?? 7;
+    if (template.mode === "last-n") {
+      const from = new Date(today);
+      from.setDate(from.getDate() - days + 1);
+      return { from, to: new Date(today) };
+    }
+    // first-n = next N days
+    const to = new Date(today);
+    to.setDate(to.getDate() + days - 1);
+    return { from: new Date(today), to };
+  }
+
+  // Month-based: figure out the target month
+  let targetMonth: number;
+  let targetYear: number;
+  if (template.base === "previous") {
+    const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    targetMonth = prev.getMonth();
+    targetYear = prev.getFullYear();
+  } else if (template.base === "next") {
+    const next = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    targetMonth = next.getMonth();
+    targetYear = next.getFullYear();
+  } else {
+    targetMonth = today.getMonth();
+    targetYear = today.getFullYear();
+  }
+
+  const last = lastDayOfMonth(targetYear, targetMonth);
+
+  if (template.mode === "full") {
+    return {
+      from: new Date(targetYear, targetMonth, 1),
+      to: new Date(targetYear, targetMonth, last),
+    };
+  }
+  if (template.mode === "first-n") {
+    const days = Math.min(template.days ?? 15, last);
+    return {
+      from: new Date(targetYear, targetMonth, 1),
+      to: new Date(targetYear, targetMonth, days),
+    };
+  }
+  // last-n
+  const days = Math.min(template.days ?? 15, last);
+  return {
+    from: new Date(targetYear, targetMonth, last - days + 1),
+    to: new Date(targetYear, targetMonth, last),
+  };
+}
+
 export function resolveTemplate(
   templateId: string,
   defaultMonth: number | null,
@@ -34,7 +120,7 @@ export function resolveTemplate(
   // Check custom templates first
   const custom = customTemplates.find((t) => t.id === templateId);
   if (custom) {
-    return { from: new Date(custom.from), to: new Date(custom.to) };
+    return resolveCustomTemplate(custom);
   }
 
   const { month, year } = getTargetMonth(defaultMonth);

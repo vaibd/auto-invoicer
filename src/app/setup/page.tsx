@@ -3,17 +3,24 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Upload, Download, ChevronsUpDown, Check, Trash2 } from "lucide-react";
+import { ArrowLeft, Upload, Download, ChevronsUpDown, Check, Trash2, Plus, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, saveSettings, clearAllData } from "@/lib/storage";
 import { CURRENCIES } from "@/lib/currency";
-import { BUILT_IN_TEMPLATES } from "@/lib/date-templates";
+import {
+  BUILT_IN_TEMPLATES,
+  TEMPLATE_PRESETS,
+  generateTemplateLabel,
+} from "@/lib/date-templates";
+import { TemplateBase, TemplateMode, CustomDateTemplate } from "@/lib/types";
 import { SenderReceiverForm } from "@/components/invoice/SenderReceiverForm";
 import { ProductForm } from "@/components/invoice/ProductForm";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -32,6 +39,121 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+function CustomTemplateBuilder({
+  onAdd,
+}: {
+  onAdd: (template: CustomDateTemplate) => void;
+}) {
+  const [base, setBase] = useState<TemplateBase>("previous");
+  const [mode, setMode] = useState<TemplateMode>("first-n");
+  const [days, setDays] = useState(7);
+  const [customLabel, setCustomLabel] = useState("");
+
+  const autoLabel = generateTemplateLabel(base, mode, days);
+  const needsDays = mode === "first-n" || mode === "last-n";
+
+  function handleAdd() {
+    onAdd({
+      id: `custom-${Date.now()}`,
+      label: customLabel.trim() || autoLabel,
+      isCustom: true,
+      base,
+      mode,
+      days: needsDays ? days : undefined,
+    });
+    setCustomLabel("");
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border p-3">
+      <p className="text-xs font-medium text-muted-foreground">
+        Or build your own
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground">Base</label>
+          <Select value={base} onValueChange={(v) => {
+            const b = v as TemplateBase;
+            setBase(b);
+            if (b === "today" && mode === "full") setMode("last-n");
+          }}>
+            <SelectTrigger className="w-full h-12 md:h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="previous">Previous month</SelectItem>
+              <SelectItem value="current">Current month</SelectItem>
+              <SelectItem value="next">Next month</SelectItem>
+              <SelectItem value="today">Relative to today</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground">Range</label>
+          <Select value={mode} onValueChange={(v) => setMode(v as TemplateMode)}>
+            <SelectTrigger className="w-full h-12 md:h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {base !== "today" && (
+                <SelectItem value="full">Full month</SelectItem>
+              )}
+              <SelectItem value="first-n">
+                {base === "today" ? "Next N days" : "First N days"}
+              </SelectItem>
+              <SelectItem value="last-n">
+                {base === "today" ? "Last N days" : "Last N days"}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {needsDays && (
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground">
+            Number of days
+          </label>
+          <Input
+            type="number"
+            min={1}
+            max={365}
+            value={days}
+            onChange={(e) => setDays(Math.max(1, parseInt(e.target.value) || 1))}
+            className="h-12 md:h-9 w-24 font-mono"
+          />
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        <label className="text-xs text-muted-foreground">
+          Label (optional)
+        </label>
+        <Input
+          type="text"
+          placeholder={autoLabel}
+          value={customLabel}
+          onChange={(e) => setCustomLabel(e.target.value)}
+          className="h-12 md:h-9"
+        />
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-1.5"
+        onClick={handleAdd}
+      >
+        <Plus className="size-4" />
+        Add Template
+      </Button>
+    </div>
+  );
+}
 
 export default function SetupPage() {
   const router = useRouter();
@@ -274,7 +396,7 @@ export default function SetupPage() {
                 }}>
                 <SelectTrigger className="w-full h-12 md:h-9">
                   <SelectValue>
-                    {BUILT_IN_TEMPLATES.find(
+                    {[...BUILT_IN_TEMPLATES, ...settings.customTemplates].find(
                       (t) => t.id === settings.defaultTemplateId
                     )?.label ?? "Select template"}
                   </SelectValue>
@@ -285,9 +407,139 @@ export default function SetupPage() {
                       {t.label}
                     </SelectItem>
                   ))}
+                  {settings.customTemplates.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                        Custom
+                      </div>
+                      {settings.customTemplates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Custom Template Builder */}
+            <Accordion>
+              <AccordionItem className="border-b-0">
+                <AccordionTrigger className="border-t pt-4 rounded-none text-sm font-medium cursor-pointer">
+                  Custom Templates
+                  {settings.customTemplates.length > 0 && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">
+                      ({settings.customTemplates.length})
+                    </span>
+                  )}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3 pt-1">
+                    {/* Existing custom templates */}
+                    {settings.customTemplates.length > 0 && (
+                      <div className="space-y-2">
+                        {settings.customTemplates.map((t) => (
+                          <div
+                            key={t.id}
+                            className="flex items-center justify-between rounded-md border px-3 py-2"
+                          >
+                            <span className="text-sm">{t.label}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                setSettings((s) => {
+                                  const filtered = s.customTemplates.filter(
+                                    (ct) => ct.id !== t.id
+                                  );
+                                  const defaultTemplateId =
+                                    s.defaultTemplateId === t.id
+                                      ? "last-15-days"
+                                      : s.defaultTemplateId;
+                                  return {
+                                    ...s,
+                                    customTemplates: filtered,
+                                    defaultTemplateId,
+                                  };
+                                });
+                              }}
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Quick-add presets */}
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Quick add a preset
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {TEMPLATE_PRESETS.filter(
+                          (preset) =>
+                            !settings.customTemplates.some(
+                              (ct) =>
+                                ct.base === preset.base &&
+                                ct.mode === preset.mode &&
+                                ct.days === preset.days
+                            )
+                        ).map((preset) => {
+                          const label = generateTemplateLabel(
+                            preset.base,
+                            preset.mode,
+                            preset.days
+                          );
+                          return (
+                            <Button
+                              key={`${preset.base}-${preset.mode}-${preset.days}`}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => {
+                                const newTemplate: CustomDateTemplate = {
+                                  id: `custom-${Date.now()}`,
+                                  label,
+                                  isCustom: true,
+                                  base: preset.base,
+                                  mode: preset.mode,
+                                  days: preset.days,
+                                };
+                                setSettings((s) => ({
+                                  ...s,
+                                  customTemplates: [
+                                    ...s.customTemplates,
+                                    newTemplate,
+                                  ],
+                                }));
+                              }}
+                            >
+                              <Plus className="size-3" />
+                              {label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Custom builder */}
+                    <CustomTemplateBuilder
+                      onAdd={(template) =>
+                        setSettings((s) => ({
+                          ...s,
+                          customTemplates: [...s.customTemplates, template],
+                        }))
+                      }
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardContent>
         </Card>
 

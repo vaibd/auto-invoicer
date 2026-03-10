@@ -22,10 +22,14 @@ export interface DateTemplate {
   isCustom?: boolean;
 }
 
+export type TemplateBase = "previous" | "current" | "next" | "today";
+export type TemplateMode = "full" | "first-n" | "last-n";
+
 export interface CustomDateTemplate extends DateTemplate {
   isCustom: true;
-  from: string; // ISO date string
-  to: string;   // ISO date string
+  base: TemplateBase;
+  mode: TemplateMode;
+  days?: number; // for first-n and last-n modes
 }
 
 export interface InvoiceData {
