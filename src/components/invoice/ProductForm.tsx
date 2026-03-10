@@ -64,6 +64,7 @@ export function ProductForm({ products, onChange }: Props) {
               <Input
                 id={`prod-name-${product.id}`}
                 value={product.name}
+                maxLength={200}
                 onChange={(e) =>
                   updateProduct(product.id, { name: e.target.value })
                 }
@@ -79,12 +80,15 @@ export function ProductForm({ products, onChange }: Props) {
                   id={`prod-price-${product.id}`}
                   type="number"
                   inputMode="decimal"
+                  min={0}
+                  max={999999999}
                   value={product.price || ""}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value) || 0;
                     updateProduct(product.id, {
-                      price: parseFloat(e.target.value) || 0,
-                    })
-                  }
+                      price: Math.max(0, Math.min(999999999, val)),
+                    });
+                  }}
                   placeholder="0.00"
                   className="h-12 md:h-9"
                 />
@@ -95,12 +99,15 @@ export function ProductForm({ products, onChange }: Props) {
                   id={`prod-qty-${product.id}`}
                   type="number"
                   inputMode="decimal"
+                  min={0}
+                  max={999999}
                   value={product.quantity || ""}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
                     updateProduct(product.id, {
-                      quantity: parseInt(e.target.value) || 0,
-                    })
-                  }
+                      quantity: Math.max(0, Math.min(999999, Math.floor(val))),
+                    });
+                  }}
                   placeholder="1"
                   className="h-12 md:h-9"
                 />

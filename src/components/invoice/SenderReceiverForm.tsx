@@ -77,6 +77,7 @@ function SortableField({
         value={field.value}
         onChange={(e) => onUpdate(field.id, { value: e.target.value })}
         placeholder={index === 0 ? "Company / Name" : "Field value"}
+        maxLength={500}
         className={cn("h-12 md:h-9 flex-1", field.isBold && "font-bold")}
       />
       <Button

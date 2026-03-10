@@ -1,4 +1,5 @@
 import { UserSettings, DEFAULT_SETTINGS } from "./types";
+import { safeMerge } from "./sanitize";
 
 const STORAGE_KEY = "invoicer-settings";
 
@@ -7,7 +8,7 @@ export function getSettings(): UserSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    return safeMerge(DEFAULT_SETTINGS, JSON.parse(raw));
   } catch {
     return DEFAULT_SETTINGS;
   }

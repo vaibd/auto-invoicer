@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, saveSettings, clearAllData } from "@/lib/storage";
+import { validateImportedSettings } from "@/lib/sanitize";
 import { CURRENCIES } from "@/lib/currency";
 import {
   BUILT_IN_TEMPLATES,
@@ -220,13 +221,18 @@ export default function SetupPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (!parsed.sender || !parsed.receiver || !parsed.products) {
-          toast.error("Invalid settings file: missing required fields");
+        const text = event.target?.result as string;
+        if (text.length > 1_000_000) {
+          toast.error("Settings file is too large (max 1 MB)");
           return;
         }
-        const imported: UserSettings = { ...DEFAULT_SETTINGS, ...parsed };
-        setSettings(imported);
+        const parsed = JSON.parse(text);
+        const result = validateImportedSettings(parsed);
+        if (!result.valid) {
+          toast.error(`Invalid settings file: ${result.error}`);
+          return;
+        }
+        setSettings(result.data);
         toast.success("Settings imported — click Save to apply");
       } catch {
         toast.error("Failed to parse settings file");

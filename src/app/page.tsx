@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { UserSettings, InvoiceData, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, hasSetup } from "@/lib/storage";
+import { sanitizeFilename } from "@/lib/sanitize";
 import { formatCurrency } from "@/lib/currency";
 import {
   resolveTemplate,
@@ -103,7 +104,8 @@ export default function Dashboard() {
         footerText: settings.footerText,
       };
 
-      const pdfFileName = invoiceNumber.endsWith(".pdf") ? invoiceNumber : `${invoiceNumber}.pdf`;
+      const safeName = sanitizeFilename(invoiceNumber).replace(/\.pdf$/i, "");
+      const pdfFileName = `${safeName}.pdf`;
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
       saveAs(blob, pdfFileName);
       toast.success(`Invoice #${invoiceNumber} downloaded`);
@@ -160,7 +162,8 @@ export default function Dashboard() {
 
   const downloadFromPreview = useCallback(() => {
     if (!previewBlob) return;
-    const pdfFileName = invoiceNumber.endsWith(".pdf") ? invoiceNumber : `${invoiceNumber}.pdf`;
+    const safeName = sanitizeFilename(invoiceNumber).replace(/\.pdf$/i, "");
+    const pdfFileName = `${safeName}.pdf`;
     saveAs(previewBlob, pdfFileName);
     getNextInvoiceNumber();
     toast.success(`Invoice #${invoiceNumber} downloaded`);
@@ -429,7 +432,12 @@ export default function Dashboard() {
                   <Input
                     id="invoiceNumber"
                     value={invoiceNumber}
-                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    maxLength={100}
+                    onChange={(e) =>
+                      setInvoiceNumber(
+                        e.target.value.replace(/[^a-zA-Z0-9\-_. ]/g, "")
+                      )
+                    }
                     className="font-mono text-center h-12 md:h-9"
                   />
                   <Button
