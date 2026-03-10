@@ -431,12 +431,14 @@ export default function SetupPage() {
             <Accordion>
               <AccordionItem className="border-b-0">
                 <AccordionTrigger className="border-t pt-4 rounded-none text-sm font-medium cursor-pointer">
-                  Custom Templates
-                  {settings.customTemplates.length > 0 && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">
-                      ({settings.customTemplates.length})
-                    </span>
-                  )}
+                  <span className="inline-flex items-center">
+                    Custom Templates
+                    {settings.customTemplates.length > 0 && (
+                      <span className="ml-1.5 text-xs text-muted-foreground">
+                        ({settings.customTemplates.length})
+                      </span>
+                    )}
+                  </span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3 pt-1">
