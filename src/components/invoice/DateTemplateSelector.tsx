@@ -32,7 +32,7 @@ export function DateTemplateSelector({
   return (
     <div className="space-y-2">
       <Select value={selectedId} onValueChange={(v) => { if (v) onSelect(v); }}>
-        <SelectTrigger className="w-full h-12 md:h-9">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select date template">
             {selectedLabel}
           </SelectValue>

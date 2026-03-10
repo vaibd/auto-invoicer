@@ -340,7 +340,7 @@ export default function Dashboard() {
                         value={String(customMonth)}
                         onValueChange={(v) => { if (v !== null) setCustomMonth(Number(v)); }}
                       >
-                        <SelectTrigger className="w-full h-12 md:h-9">
+                        <SelectTrigger className="w-full">
                           <SelectValue>
                             {new Date(2000, customMonth).toLocaleString("en-US", { month: "long" })}
                           </SelectValue>
@@ -363,7 +363,7 @@ export default function Dashboard() {
                         value={String(customYear)}
                         onValueChange={(v) => { if (v !== null) setCustomYear(Number(v)); }}
                       >
-                        <SelectTrigger className="w-full h-12 md:h-9">
+                        <SelectTrigger className="w-full">
                           <SelectValue>{customYear}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
@@ -388,7 +388,7 @@ export default function Dashboard() {
                       value={customRange}
                       onValueChange={(v) => { if (v) setCustomRange(v as RangeType); }}
                     >
-                      <SelectTrigger className="w-full h-12 md:h-9">
+                      <SelectTrigger className="w-full">
                         <SelectValue>
                           {RANGE_OPTIONS.find((o) => o.value === customRange)?.label}
                         </SelectValue>
@@ -423,8 +423,8 @@ export default function Dashboard() {
                   <Button
                     type="button"
                     variant="outline"
-                    size="icon"
-                    className="shrink-0 h-12 w-10 md:h-9 md:w-8 rounded-sm"
+                    size="icon-sm"
+                    className="shrink-0 rounded-sm"
                     onClick={() => adjustInvoiceNumber(-1)}
                   >
                     <Minus className="size-4" />
@@ -438,13 +438,13 @@ export default function Dashboard() {
                         e.target.value.replace(/[^a-zA-Z0-9\-_. ]/g, "")
                       )
                     }
-                    className="font-mono text-center h-12 md:h-9"
+                    className="font-mono text-center"
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    size="icon"
-                    className="shrink-0 h-12 w-10 md:h-9 md:w-8 rounded-sm"
+                    size="icon-sm"
+                    className="shrink-0 rounded-sm"
                     onClick={() => adjustInvoiceNumber(1)}
                   >
                     <Plus className="size-4" />
@@ -464,7 +464,7 @@ export default function Dashboard() {
                     const d = new Date(e.target.value + "T00:00:00");
                     if (!isNaN(d.getTime())) setInvoiceDate(d);
                   }}
-                  className="font-mono text-center h-12 md:h-9"
+                  className="font-mono text-center"
                 />
               </div>
             </div>

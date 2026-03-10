@@ -124,7 +124,7 @@ function CustomTemplateBuilder({
             max={365}
             value={days}
             onChange={(e) => setDays(Math.max(1, parseInt(e.target.value) || 1))}
-            className="h-12 md:h-9 w-24 font-mono"
+            className="w-24 font-mono"
           />
         </div>
       )}
@@ -138,7 +138,6 @@ function CustomTemplateBuilder({
           placeholder={autoLabel}
           value={customLabel}
           onChange={(e) => setCustomLabel(e.target.value)}
-          className="h-12 md:h-9"
         />
       </div>
 
@@ -314,7 +313,7 @@ export default function SetupPage() {
                 type="button"
                 onClick={() => setCurrencyOpen((o) => !o)}
                 className={cn(
-                  "flex h-12 md:h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs",
+                  "flex w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 )}>
                 <span>
@@ -378,7 +377,7 @@ export default function SetupPage() {
                   setSettings((s) => ({ ...s, footerText: e.target.value }))
                 }
                 placeholder="Thank you for your business!"
-                className="flex h-12 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <p className="text-xs text-muted-foreground">
                 Leave empty to hide the footer on the PDF.
