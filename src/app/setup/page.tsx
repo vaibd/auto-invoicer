@@ -3,11 +3,11 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Upload, Download, ChevronsUpDown, Check } from "lucide-react";
+import { ArrowLeft, Upload, Download, ChevronsUpDown, Check, Trash2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
-import { getSettings, saveSettings } from "@/lib/storage";
+import { getSettings, saveSettings, clearAllData } from "@/lib/storage";
 import { CURRENCIES } from "@/lib/currency";
 import { BUILT_IN_TEMPLATES } from "@/lib/date-templates";
 import { SenderReceiverForm } from "@/components/invoice/SenderReceiverForm";
@@ -39,6 +39,7 @@ export default function SetupPage() {
   const [loaded, setLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
@@ -233,6 +234,31 @@ export default function SetupPage() {
           </CardContent>
         </Card>
 
+        {/* Footer Text */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-sans font-bold">Footer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="footerText">Invoice Footer Text</Label>
+              <input
+                id="footerText"
+                type="text"
+                value={settings.footerText}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, footerText: e.target.value }))
+                }
+                placeholder="Thank you for your business!"
+                className="flex h-12 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to hide the footer on the PDF.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Date Settings */}
         <Card className="shadow-sm">
           <CardHeader>
@@ -299,6 +325,54 @@ export default function SetupPage() {
                 onChange={handleImport}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Danger Zone */}
+        <Card className="shadow-sm border-destructive/30">
+          <CardHeader>
+            <CardTitle className="font-sans font-bold text-destructive">
+              Danger Zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Permanently delete all settings, invoice numbers, and stored data.
+            </p>
+            {confirmDelete ? (
+              <div className="flex gap-3">
+                <Button
+                  variant="destructive"
+                  className="flex-1 gap-1.5"
+                  onClick={() => {
+                    clearAllData();
+                    toast.success("All data deleted");
+                    router.push("/setup");
+                    setSettings(DEFAULT_SETTINGS);
+                    setConfirmDelete(false);
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  Yes, delete everything
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="size-4" />
+                Delete All Data
+              </Button>
+            )}
           </CardContent>
         </Card>
 

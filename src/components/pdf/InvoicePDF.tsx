@@ -40,7 +40,7 @@ export function InvoicePDF({ data }: Props) {
         </View>
         <PDFLineItems products={data.products} currency={data.currency} />
         <PDFTotals products={data.products} currency={data.currency} />
-        <PDFFooter />
+        <PDFFooter text={data.footerText} />
       </Page>
     </Document>
   );

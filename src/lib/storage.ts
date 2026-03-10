@@ -17,6 +17,10 @@ export function saveSettings(settings: UserSettings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
+export function clearAllData(): void {
+  localStorage.clear();
+}
+
 export function hasSetup(): boolean {
   if (typeof window === "undefined") return false;
   try {

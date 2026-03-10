@@ -1,9 +1,9 @@
 import { DateTemplate, CustomDateTemplate } from "./types";
 
 export const BUILT_IN_TEMPLATES: DateTemplate[] = [
-  { id: "last-15-days", label: "Previous month (last 15 days)" },
-  { id: "prev-full", label: "Previous month (full)" },
   { id: "prev-2-months", label: "Previous 2 months" },
+  { id: "prev-full", label: "Previous month (full)" },
+  { id: "last-15-days", label: "Previous month (last 15 days)" },
   { id: "curr-first-15-days", label: "Current month (first 15 days)" },
   { id: "curr-last-15-days", label: "Current month (last 15 days)" },
   { id: "next-last-15-days", label: "Next month (first 15 days)" },

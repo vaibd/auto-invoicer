@@ -100,6 +100,7 @@ export default function Dashboard() {
         receiver: settings.receiver,
         products: settings.products,
         currency: settings.currency,
+        footerText: settings.footerText,
       };
 
       const pdfFileName = invoiceNumber.endsWith(".pdf") ? invoiceNumber : `${invoiceNumber}.pdf`;
@@ -136,6 +137,7 @@ export default function Dashboard() {
         receiver: settings.receiver,
         products: settings.products,
         currency: settings.currency,
+        footerText: settings.footerText,
       };
 
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();

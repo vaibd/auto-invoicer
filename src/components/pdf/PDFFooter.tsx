@@ -14,10 +14,11 @@ const styles = StyleSheet.create({
   },
 });
 
-export function PDFFooter() {
+export function PDFFooter({ text }: { text: string }) {
+  if (!text) return null;
   return (
     <View style={styles.footer}>
-      <Text style={styles.text}>Thank you for your business!</Text>
+      <Text style={styles.text}>{text}</Text>
     </View>
   );
 }

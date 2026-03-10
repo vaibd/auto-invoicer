@@ -37,6 +37,7 @@ export interface InvoiceData {
   receiver: Party;
   products: Product[];
   currency: string;
+  footerText: string;
 }
 
 export interface UserSettings {
@@ -48,18 +49,15 @@ export interface UserSettings {
   customTemplates: CustomDateTemplate[];
   lastInvoiceNumber: number;
   currency: string;
+  footerText: string;
 }
 
 export const DEFAULT_SENDER_FIELDS: Field[] = [
-  { id: "name", label: "Name", value: "", isBold: true },
-  { id: "email", label: "Email", value: "" },
-  { id: "location", label: "Location", value: "" },
+  { id: "field-1", label: "", value: "", isBold: true },
 ];
 
 export const DEFAULT_RECEIVER_FIELDS: Field[] = [
-  { id: "name", label: "Name", value: "", isBold: true },
-  { id: "email", label: "Email", value: "" },
-  { id: "location", label: "Location", value: "" },
+  { id: "field-1", label: "", value: "", isBold: true },
 ];
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -71,4 +69,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   customTemplates: [],
   lastInvoiceNumber: 0,
   currency: "USD",
+  footerText: "Thank you for your business!",
 };
