@@ -20,7 +20,7 @@ import {
   RANGE_OPTIONS,
   type RangeType,
 } from "@/lib/date-templates";
-import { getNextInvoiceNumber, peekNextInvoiceNumber } from "@/lib/invoice-number";
+import { peekNextInvoiceNumber, parseInvoiceNum, setLastInvoiceNumber } from "@/lib/invoice-number";
 import { DateTemplateSelector } from "@/components/invoice/DateTemplateSelector";
 import { InvoicePDF } from "@/components/pdf/InvoicePDF";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,28 @@ export default function Dashboard() {
       ? resolveForMonth(customMonth, customYear, customRange)
       : resolveTemplate(selectedTemplate, settings.defaultMonth, settings.customTemplates);
 
+  const formatDateCompact = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const advanceInvoiceCounter = () => {
+    const parsed = parseInvoiceNum(invoiceNumber);
+    if (parsed !== null) {
+      setLastInvoiceNumber(parsed);
+    }
+    const nextNum = peekNextInvoiceNumber();
+    setInvoiceNumber(nextNum);
+  };
+
+  const buildFileName = () => {
+    const safeName = sanitizeFilename(invoiceNumber).replace(/\.pdf$/i, "");
+    const dateRange = `${formatDateCompact(resolved.from)}_${formatDateCompact(resolved.to)}`;
+    return `${safeName}_${dateRange}.pdf`;
+  };
+
   const handleGenerate = useCallback(async () => {
     if (settings.products.length === 0) {
       toast.error("No products configured. Go to Setup to add products.");
@@ -101,20 +123,11 @@ export default function Dashboard() {
         footerText: settings.footerText,
       };
 
-      const safeName = sanitizeFilename(invoiceNumber).replace(/\.pdf$/i, "");
-      const pdfFileName = `${safeName}.pdf`;
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
-      saveAs(blob, pdfFileName);
+      saveAs(blob, buildFileName());
 
-      // Increment only after successful generation & download
-      getNextInvoiceNumber();
       toast.success(`Invoice #${invoiceNumber} downloaded`);
-
-      // Refresh settings and set next invoice number
-      const s = getSettings();
-      setSettings(s);
-      const nextNum = peekNextInvoiceNumber();
-      setInvoiceNumber(nextNum);
+      advanceInvoiceCounter();
     } catch (err) {
       console.error("PDF generation failed:", err);
       toast.error("Failed to generate invoice. Please try again.");
@@ -172,17 +185,10 @@ export default function Dashboard() {
 
   const downloadFromPreview = useCallback(() => {
     if (!previewBlob) return;
-    const safeName = sanitizeFilename(invoiceNumber).replace(/\.pdf$/i, "");
-    const pdfFileName = `${safeName}.pdf`;
-    saveAs(previewBlob, pdfFileName);
-    getNextInvoiceNumber();
+    saveAs(previewBlob, buildFileName());
     toast.success(`Invoice #${invoiceNumber} downloaded`);
     closePreview();
-
-    const s = getSettings();
-    setSettings(s);
-    const nextNum = peekNextInvoiceNumber();
-    setInvoiceNumber(nextNum);
+    advanceInvoiceCounter();
   }, [previewBlob, invoiceNumber, closePreview]);
 
   if (!loaded) {

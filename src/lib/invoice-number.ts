@@ -15,3 +15,16 @@ export function peekNextInvoiceNumber(): string {
   const settings = getSettings();
   return formatInvoiceNumber(settings.lastInvoiceNumber + 1);
 }
+
+/** Parse the trailing number from an invoice number string (e.g. "INV-0003" → 3) */
+export function parseInvoiceNum(invoiceNumber: string): number | null {
+  const match = invoiceNumber.match(/(\d+)$/);
+  if (!match) return null;
+  return parseInt(match[1], 10);
+}
+
+/** Set the stored counter so the next peek/get continues from this number */
+export function setLastInvoiceNumber(num: number): void {
+  const settings = getSettings();
+  saveSettings({ ...settings, lastInvoiceNumber: num });
+}
