@@ -1,4 +1,12 @@
-import { Sheet, SheetColumn, SheetRow, BUILTIN_COLUMNS, InvoiceSnapshot } from "./types";
+import {
+  Sheet,
+  SheetColumn,
+  SheetRow,
+  BUILTIN_COLUMNS,
+  InvoiceSnapshot,
+  InvoiceData,
+  UserSettings,
+} from "./types";
 import { getFinancialYear } from "./financial-year";
 
 /** YYYY-MM-DD (local). Mirrors the closure used for invoice filenames in page.tsx. */
@@ -105,6 +113,111 @@ export function appendInvoiceRow(
   // amountInr / conversionRate / platformFees stay blank for manual entry + Run.
   if (args.invoice) row.invoice = args.invoice;
   return { ...sheet, rows: [...sheet.rows, row] };
+}
+
+/** Merge a partial set of cell values into one row (immutable). */
+export function patchRowValues(
+  sheet: Sheet,
+  rowId: string,
+  patch: Record<string, string>
+): Sheet {
+  return {
+    ...sheet,
+    rows: sheet.rows.map((r) =>
+      r.id === rowId ? { ...r, values: { ...r.values, ...patch } } : r
+    ),
+  };
+}
+
+/** Set a single cell. */
+export function setCellValue(
+  sheet: Sheet,
+  rowId: string,
+  colId: string,
+  value: string
+): Sheet {
+  return patchRowValues(sheet, rowId, { [colId]: value });
+}
+
+/** Rename a column by id. */
+export function renameColumn(sheet: Sheet, colId: string, label: string): Sheet {
+  return {
+    ...sheet,
+    columns: sheet.columns.map((c) => (c.id === colId ? { ...c, label } : c)),
+  };
+}
+
+/** Append a new custom column. */
+export function addColumn(sheet: Sheet, label = "New column"): Sheet {
+  return { ...sheet, columns: [...sheet.columns, createCustomColumn(label)] };
+}
+
+/** Remove a column and strip its cell from every row. */
+export function removeColumn(sheet: Sheet, colId: string): Sheet {
+  return {
+    ...sheet,
+    columns: sheet.columns.filter((c) => c.id !== colId),
+    rows: sheet.rows.map((r) => {
+      const next: Record<string, string> = {};
+      for (const k of Object.keys(r.values)) {
+        if (k !== colId) next[k] = r.values[k];
+      }
+      return { ...r, values: next };
+    }),
+  };
+}
+
+/** Append a blank row with the next Sr no filled in. */
+export function addRow(sheet: Sheet): Sheet {
+  const row = createEmptyRow(sheet.columns);
+  row.values.srNo = String(sheet.rows.length + 1);
+  return { ...sheet, rows: [...sheet.rows, row] };
+}
+
+/** Delete a row and renumber every remaining row's Sr no from 1. */
+export function deleteRow(sheet: Sheet, rowId: string): Sheet {
+  return {
+    ...sheet,
+    rows: sheet.rows
+      .filter((r) => r.id !== rowId)
+      .map((r, i) => ({ ...r, values: { ...r.values, srNo: String(i + 1) } })),
+  };
+}
+
+/**
+ * Build invoice data for a ledger row's PDF. Prefers the exact snapshot
+ * captured at download time; falls back to current settings + row fields for
+ * rows that predate snapshots (or were added manually). An unparseable row
+ * date falls back to the current date.
+ */
+export function rowToInvoiceData(row: SheetRow, settings: UserSettings): InvoiceData {
+  if (row.invoice) {
+    const s = row.invoice;
+    return {
+      invoiceNumber: s.invoiceNumber,
+      invoiceDate: new Date(s.invoiceDate),
+      from: new Date(s.from),
+      to: new Date(s.to),
+      sender: s.sender,
+      receiver: s.receiver,
+      products: s.products,
+      currency: s.currency,
+      footerText: s.footerText,
+    };
+  }
+  const parsed = row.values.date ? new Date(row.values.date) : new Date();
+  const date = isNaN(parsed.getTime()) ? new Date() : parsed;
+  return {
+    invoiceNumber: row.values.invoiceName || "INVOICE",
+    invoiceDate: date,
+    from: date,
+    to: date,
+    sender: settings.sender,
+    receiver: settings.receiver,
+    products: settings.products,
+    currency: settings.currency,
+    footerText: settings.footerText,
+  };
 }
 
 /** Serialize to RFC-4180 CSV (CRLF line endings, every field quoted, "" escaping). */

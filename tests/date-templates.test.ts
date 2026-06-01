@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   generateTemplateLabel,
   resolveForMonth,
@@ -77,6 +77,48 @@ describe("resolveTemplate", () => {
     const unknown = resolveTemplate("does-not-exist", null, []);
     const prevFull = resolveTemplate("prev-full", null, []);
     expect(unknown).toEqual(prevFull);
+  });
+});
+
+describe("resolveTemplate builtin branches (clock fixed at 2026-05-20)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 20, 12, 0, 0)); // 20 May 2026, local
+  });
+  afterEach(() => vi.useRealTimers());
+
+  // With defaultMonth = null the "target month" is the previous month (April 2026).
+  const cases: Record<string, { from: Date; to: Date }> = {
+    "prev-full": { from: new Date(2026, 3, 1), to: new Date(2026, 3, 30) },
+    "last-15-days": { from: new Date(2026, 3, 16), to: new Date(2026, 3, 30) },
+    "prev-2-months": { from: new Date(2026, 2, 1), to: new Date(2026, 3, 30) },
+    "curr-first-15-days": { from: new Date(2026, 4, 1), to: new Date(2026, 4, 15) },
+    "curr-last-15-days": { from: new Date(2026, 4, 17), to: new Date(2026, 4, 31) },
+    "next-full": { from: new Date(2026, 5, 1), to: new Date(2026, 5, 30) },
+    "next-last-15-days": { from: new Date(2026, 5, 16), to: new Date(2026, 5, 30) },
+    "next-2-months": { from: new Date(2026, 5, 1), to: new Date(2026, 6, 31) },
+  };
+
+  for (const [id, expected] of Object.entries(cases)) {
+    it(`resolves "${id}"`, () => {
+      expect(resolveTemplate(id, null, [])).toEqual(expected);
+    });
+  }
+
+  it("uses a provided defaultMonth in the current year", () => {
+    // defaultMonth 0 = January -> prev-full spans the whole of Jan 2026
+    expect(resolveTemplate("prev-full", 0, [])).toEqual({
+      from: new Date(2026, 0, 1),
+      to: new Date(2026, 0, 31),
+    });
+  });
+
+  it("resolves a today-based custom 'last 7 days' template", () => {
+    expect(
+      resolveTemplate("c", null, [
+        { id: "c", label: "Last 7", isCustom: true, base: "today", mode: "last-n", days: 7 },
+      ])
+    ).toEqual({ from: new Date(2026, 4, 14), to: new Date(2026, 4, 20) });
   });
 });
 

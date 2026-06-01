@@ -1,9 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   formatInvoiceNumber,
   parseInvoiceNum,
   splitInvoiceNumber,
+  getNextInvoiceNumber,
+  peekNextInvoiceNumber,
+  setLastInvoiceNumber,
 } from "@/lib/invoice-number";
+import { saveSettings } from "@/lib/storage";
+import { DEFAULT_SETTINGS } from "@/lib/types";
+import { installLocalStorage } from "./helpers";
 
 describe("formatInvoiceNumber", () => {
   it("applies the default prefix and pad width", () => {
@@ -63,5 +69,42 @@ describe("splitInvoiceNumber", () => {
   it("round-trips with formatInvoiceNumber", () => {
     const { prefix, num, pad } = splitInvoiceNumber("INV-0007");
     expect(formatInvoiceNumber(num!, prefix, pad)).toBe("INV-0007");
+  });
+});
+
+describe("storage-backed counter", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("peekNextInvoiceNumber shows the next number without advancing", () => {
+    installLocalStorage();
+    saveSettings({ ...DEFAULT_SETTINGS, lastInvoiceNumber: 5 });
+    expect(peekNextInvoiceNumber()).toBe("INV-0006");
+    expect(peekNextInvoiceNumber()).toBe("INV-0006"); // still 6 — peek is non-mutating
+  });
+
+  it("getNextInvoiceNumber advances the counter on each call", () => {
+    installLocalStorage();
+    saveSettings({ ...DEFAULT_SETTINGS, lastInvoiceNumber: 0 });
+    expect(getNextInvoiceNumber()).toBe("INV-0001");
+    expect(getNextInvoiceNumber()).toBe("INV-0002");
+    expect(peekNextInvoiceNumber()).toBe("INV-0003");
+  });
+
+  it("respects the stored prefix and pad width", () => {
+    installLocalStorage();
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      lastInvoiceNumber: 41,
+      invoiceNumberPrefix: "BILL/",
+      invoiceNumberPadLength: 6,
+    });
+    expect(getNextInvoiceNumber()).toBe("BILL/000042");
+  });
+
+  it("setLastInvoiceNumber makes the next peek continue from there", () => {
+    installLocalStorage();
+    saveSettings(DEFAULT_SETTINGS);
+    setLastInvoiceNumber(99);
+    expect(peekNextInvoiceNumber()).toBe("INV-0100");
   });
 });

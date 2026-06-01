@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
 import { Plus, Trash2, Loader2, Download, FileDown, X } from "lucide-react";
 
-import { UserSettings, Sheet, SheetRow, InvoiceData } from "@/lib/types";
+import { UserSettings, Sheet, SheetRow } from "@/lib/types";
 import { InvoicePDF } from "@/components/pdf/InvoicePDF";
 import {
   ensureSheet,
@@ -14,8 +14,14 @@ import {
   computePlatformFees,
   getSheetHeader,
   sheetToCsv,
-  createCustomColumn,
-  createEmptyRow,
+  patchRowValues,
+  setCellValue,
+  renameColumn as renameColumnOp,
+  addColumn as addColumnOp,
+  removeColumn as removeColumnOp,
+  addRow as addRowOp,
+  deleteRow as deleteRowOp,
+  rowToInvoiceData,
 } from "@/lib/sheet";
 import { fetchUsdInrRate } from "@/lib/fx-rate";
 import { getFinancialYear, getFinancialYearShort } from "@/lib/financial-year";
@@ -44,41 +50,6 @@ const PLACEHOLDERS: Record<string, string> = {
 const cellInputBase =
   "block w-full min-w-[6.5rem] bg-transparent px-2 py-1.5 text-sm outline-none rounded-sm focus:bg-background focus:ring-2 focus:ring-ring/40";
 
-/**
- * Build invoice data for a row's PDF. Prefers the exact snapshot captured at
- * download time; falls back to current settings + row fields for rows that
- * predate snapshots (or were added manually).
- */
-function rowToInvoiceData(row: SheetRow, settings: UserSettings): InvoiceData {
-  if (row.invoice) {
-    const s = row.invoice;
-    return {
-      invoiceNumber: s.invoiceNumber,
-      invoiceDate: new Date(s.invoiceDate),
-      from: new Date(s.from),
-      to: new Date(s.to),
-      sender: s.sender,
-      receiver: s.receiver,
-      products: s.products,
-      currency: s.currency,
-      footerText: s.footerText,
-    };
-  }
-  const parsed = row.values.date ? new Date(row.values.date) : new Date();
-  const date = isNaN(parsed.getTime()) ? new Date() : parsed;
-  return {
-    invoiceNumber: row.values.invoiceName || "INVOICE",
-    invoiceDate: date,
-    from: date,
-    to: date,
-    sender: settings.sender,
-    receiver: settings.receiver,
-    products: settings.products,
-    currency: settings.currency,
-    footerText: settings.footerText,
-  };
-}
-
 interface SheetViewProps {
   settings: UserSettings;
   onChange: (next: UserSettings) => void;
@@ -94,52 +65,21 @@ export function SheetView({ settings, onChange }: SheetViewProps) {
   const setFirmName = (firmName: string) => update((s) => ({ ...s, firmName }));
 
   const patchRow = (rowId: string, patch: Record<string, string>) =>
-    update((s) => ({
-      ...s,
-      rows: s.rows.map((r) =>
-        r.id === rowId ? { ...r, values: { ...r.values, ...patch } } : r
-      ),
-    }));
+    update((s) => patchRowValues(s, rowId, patch));
 
   const setCell = (rowId: string, colId: string, value: string) =>
-    patchRow(rowId, { [colId]: value });
+    update((s) => setCellValue(s, rowId, colId, value));
 
   const renameColumn = (colId: string, label: string) =>
-    update((s) => ({
-      ...s,
-      columns: s.columns.map((c) => (c.id === colId ? { ...c, label } : c)),
-    }));
+    update((s) => renameColumnOp(s, colId, label));
 
-  const addColumn = () =>
-    update((s) => ({ ...s, columns: [...s.columns, createCustomColumn()] }));
+  const addColumn = () => update((s) => addColumnOp(s));
 
-  const removeColumn = (colId: string) =>
-    update((s) => ({
-      ...s,
-      columns: s.columns.filter((c) => c.id !== colId),
-      rows: s.rows.map((r) => {
-        const next: Record<string, string> = {};
-        for (const k of Object.keys(r.values)) {
-          if (k !== colId) next[k] = r.values[k];
-        }
-        return { ...r, values: next };
-      }),
-    }));
+  const removeColumn = (colId: string) => update((s) => removeColumnOp(s, colId));
 
-  const addRow = () =>
-    update((s) => {
-      const row = createEmptyRow(s.columns);
-      row.values.srNo = String(s.rows.length + 1);
-      return { ...s, rows: [...s.rows, row] };
-    });
+  const addRow = () => update((s) => addRowOp(s));
 
-  const deleteRow = (rowId: string) =>
-    update((s) => ({
-      ...s,
-      rows: s.rows
-        .filter((r) => r.id !== rowId)
-        .map((r, i) => ({ ...r, values: { ...r.values, srNo: String(i + 1) } })),
-    }));
+  const deleteRow = (rowId: string) => update((s) => deleteRowOp(s, rowId));
 
   const exportCsv = () => {
     if (sheet.rows.length === 0) {
