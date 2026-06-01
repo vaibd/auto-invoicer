@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, saveSettings, clearAllData } from "@/lib/storage";
+import { useHydrated } from "@/lib/use-hydrated";
 import { validateImportedSettings } from "@/lib/sanitize";
 import { CURRENCIES } from "@/lib/currency";
 import { getFinancialYearShort } from "@/lib/financial-year";
@@ -159,19 +160,17 @@ function CustomTemplateBuilder({
 
 export default function SetupPage() {
   const router = useRouter();
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
+  // Seed from localStorage lazily; getSettings() returns DEFAULT_SETTINGS during
+  // SSR (no window) and the stored values on the client's first render. The
+  // settings-dependent UI is gated on `hydrated` below so the two never mismatch.
+  const [settings, setSettings] = useState<UserSettings>(getSettings);
+  const hydrated = useHydrated();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
-
-  useEffect(() => {
-    setSettings(getSettings());
-    setLoaded(true);
-  }, []);
 
   const updateDropdownPos = useCallback(() => {
     if (triggerRef.current) {
@@ -244,7 +243,7 @@ export default function SetupPage() {
     e.target.value = "";
   }
 
-  if (!loaded) return null;
+  if (!hydrated) return null;
 
   return (
     <div className="min-h-screen bg-page-gradient">
