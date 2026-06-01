@@ -125,15 +125,9 @@ export function SheetView({ settings, onChange }: SheetViewProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Firm name + actions */}
+        {/* Heading name + actions */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1.5">
-            <label
-              htmlFor="firmName"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              Firm name
-            </label>
             <Input
               id="firmName"
               value={sheet.firmName}
@@ -176,7 +170,7 @@ export function SheetView({ settings, onChange }: SheetViewProps) {
         <div className="overflow-x-auto rounded-md border">
           <table className="w-full border-collapse text-sm">
             <thead>
-              {/* Super-row: firm name + financial year */}
+              {/* Super-row: heading name + financial year */}
               <tr>
                 <th
                   colSpan={sheet.columns.length + 1}

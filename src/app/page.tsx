@@ -235,9 +235,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-page-gradient pb-28">
-      <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between animate-fade-in">
           <div>
             <h1 className="font-sans text-3xl font-extrabold tracking-tight">
               Invoices
@@ -266,12 +266,12 @@ export default function Dashboard() {
           onValueChange={(v) => setView(v as "invoice" | "sheet")}
           className="animate-fade-in-up"
         >
-          <TabsList>
+          <TabsList className="mx-auto w-full max-w-2xl">
             <TabsTrigger value="invoice">Invoice</TabsTrigger>
             <TabsTrigger value="sheet">Sheet</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="invoice" className="space-y-5">
+          <TabsContent value="invoice" className="mx-auto w-full max-w-2xl space-y-5">
 
         {/* Party Summary */}
         <div className="grid gap-4 md:grid-cols-2 animate-fade-in-up delay-1">

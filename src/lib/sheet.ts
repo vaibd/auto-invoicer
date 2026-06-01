@@ -20,7 +20,7 @@ export function computePlatformFees(usd: number, rate: number, inr: number): num
   return usd * rate - inr;
 }
 
-/** Header super-row text: "ABC firm 2026-2027" (or just the FY when firm name is empty). */
+/** Header super-row text: "ABC firm 2026-2027" (or just the FY when heading name is empty). */
 export function getSheetHeader(firmName: string, date: Date = new Date()): string {
   const fy = getFinancialYear(date);
   const name = firmName.trim();
