@@ -1,8 +1,8 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import { Sun, Moon, Monitor } from "lucide-react";
+import { useHydrated } from "@/lib/use-hydrated";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,9 +20,7 @@ const ICONS = { system: Monitor, light: Sun, dark: Moon } as const;
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const current = (theme ?? "system") as keyof typeof ICONS;
   const Icon = mounted ? ICONS[current] : Monitor;

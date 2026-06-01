@@ -1,4 +1,4 @@
-import { Document, Page, View, Font, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, StyleSheet } from "@react-pdf/renderer";
 import { InvoiceData } from "@/lib/types";
 import { PDFHeader } from "./PDFHeader";
 import { PDFPartyInfo } from "./PDFPartyInfo";

@@ -8,9 +8,11 @@ import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 
-import { UserSettings, InvoiceData, DEFAULT_SETTINGS } from "@/lib/types";
-import { getSettings, hasSetup } from "@/lib/storage";
+import { UserSettings, InvoiceData, InvoiceSnapshot, DEFAULT_SETTINGS } from "@/lib/types";
+import { getSettings, hasSetup, saveSettings } from "@/lib/storage";
 import { sanitizeFilename } from "@/lib/sanitize";
+import { appendInvoiceRow, ensureSheet } from "@/lib/sheet";
+import { getFinancialYearShort } from "@/lib/financial-year";
 import { formatCurrency } from "@/lib/currency";
 import {
   resolveTemplate,
@@ -20,9 +22,10 @@ import {
   RANGE_OPTIONS,
   type RangeType,
 } from "@/lib/date-templates";
-import { peekNextInvoiceNumber, parseInvoiceNum, setLastInvoiceNumber } from "@/lib/invoice-number";
+import { peekNextInvoiceNumber, parseInvoiceNum, setLastInvoiceNumber, splitInvoiceNumber } from "@/lib/invoice-number";
 import { DateTemplateSelector } from "@/components/invoice/DateTemplateSelector";
 import { InvoicePDF } from "@/components/pdf/InvoicePDF";
+import { SheetView } from "@/components/sheet/SheetView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +45,7 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [view, setView] = useState<"invoice" | "sheet">("invoice");
   const [activeTab, setActiveTab] = useState<"current" | "custom">("current");
   const [customMonth, setCustomMonth] = useState(() => {
     const prev = new Date();
@@ -77,31 +81,81 @@ export default function Dashboard() {
     setInvoiceNumber(`${prefix}${String(newNum).padStart(padLen, "0")}`);
   };
 
+  // Filter input and persist the prefix + zero-pad width so the field's format
+  // survives reloads and is included in config backups. (The trailing counter is
+  // saved separately on download via advanceInvoiceCounter.)
+  const handleInvoiceNumberChange = (raw: string) => {
+    const value = raw.replace(/[^a-zA-Z0-9\-_. ]/g, "");
+    setInvoiceNumber(value);
+    const { prefix, pad } = splitInvoiceNumber(value);
+    const next: UserSettings = {
+      ...getSettings(),
+      invoiceNumberPrefix: prefix,
+      invoiceNumberPadLength: pad,
+    };
+    setSettings(next);
+    saveSettings(next);
+  };
+
   const resolved =
     activeTab === "custom"
       ? resolveForMonth(customMonth, customYear, customRange)
       : resolveTemplate(selectedTemplate, settings.defaultMonth, settings.customTemplates);
 
-  const formatDateCompact = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
   const advanceInvoiceCounter = () => {
     const parsed = parseInvoiceNum(invoiceNumber);
     if (parsed !== null) {
       setLastInvoiceNumber(parsed);
+      // Keep React state in sync with the persisted counter so a later sheet
+      // edit (which saves the whole settings object) can't roll it back.
+      setSettings((prev) => ({ ...prev, lastInvoiceNumber: parsed }));
     }
     const nextNum = peekNextInvoiceNumber();
     setInvoiceNumber(nextNum);
   };
 
+  // Append a ledger row for the invoice just downloaded. Reads the freshest
+  // persisted settings so it never clobbers concurrent writes, and must run
+  // BEFORE advanceInvoiceCounter() so the counter bump preserves this row.
+  const recordInvoiceInSheet = () => {
+    const current = getSettings();
+    const amountUsd = current.products.reduce(
+      (sum, p) => sum + p.price * p.quantity,
+      0
+    );
+    // Snapshot the exact invoice so the row's PDF can be re-downloaded identically.
+    const invoice: InvoiceSnapshot = {
+      invoiceNumber,
+      invoiceDate: invoiceDate.toISOString(),
+      from: resolved.from.toISOString(),
+      to: resolved.to.toISOString(),
+      sender: current.sender,
+      receiver: current.receiver,
+      products: current.products,
+      currency: current.currency,
+      footerText: current.footerText,
+    };
+    const next: UserSettings = {
+      ...current,
+      sheet: appendInvoiceRow(ensureSheet(current.sheet), {
+        invoiceName: invoiceNumber,
+        date: invoiceDate,
+        amountUsd,
+        from: resolved.from,
+        to: resolved.to,
+        invoice,
+      }),
+    };
+    setSettings(next);
+    saveSettings(next);
+  };
+
   const buildFileName = () => {
     const safeName = sanitizeFilename(invoiceNumber).replace(/\.pdf$/i, "");
-    const dateRange = `${formatDateCompact(resolved.from)}_${formatDateCompact(resolved.to)}`;
-    return `${safeName}_${dateRange}.pdf`;
+    const fyPrefix = settings.includeFyInFilename
+      ? `${getFinancialYearShort(invoiceDate)} `
+      : "";
+    return `${fyPrefix}${safeName}.pdf`;
   };
 
   const handleGenerate = useCallback(async () => {
@@ -126,6 +180,7 @@ export default function Dashboard() {
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
       saveAs(blob, buildFileName());
 
+      recordInvoiceInSheet();
       toast.success(`Invoice #${invoiceNumber} downloaded`);
       advanceInvoiceCounter();
     } catch (err) {
@@ -186,6 +241,7 @@ export default function Dashboard() {
   const downloadFromPreview = useCallback(() => {
     if (!previewBlob) return;
     saveAs(previewBlob, buildFileName());
+    recordInvoiceInSheet();
     toast.success(`Invoice #${invoiceNumber} downloaded`);
     closePreview();
     advanceInvoiceCounter();
@@ -206,9 +262,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-page-gradient pb-28">
-      <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between animate-fade-in">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between animate-fade-in">
           <div>
             <h1 className="font-sans text-3xl font-extrabold tracking-tight">
               Invoices
@@ -230,6 +286,19 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Invoice / Sheet tabs */}
+        <Tabs
+          value={view}
+          onValueChange={(v) => setView(v as "invoice" | "sheet")}
+          className="animate-fade-in-up"
+        >
+          <TabsList className="mx-auto w-full max-w-2xl">
+            <TabsTrigger value="invoice">Invoice</TabsTrigger>
+            <TabsTrigger value="sheet">Sheet</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="invoice" className="mx-auto w-full max-w-2xl space-y-5">
 
         {/* Party Summary */}
         <div className="grid gap-4 md:grid-cols-2 animate-fade-in-up delay-1">
@@ -449,11 +518,7 @@ export default function Dashboard() {
                     id="invoiceNumber"
                     value={invoiceNumber}
                     maxLength={100}
-                    onChange={(e) =>
-                      setInvoiceNumber(
-                        e.target.value.replace(/[^a-zA-Z0-9\-_. ]/g, "")
-                      )
-                    }
+                    onChange={(e) => handleInvoiceNumberChange(e.target.value)}
                     className="font-mono text-center"
                   />
                   <Button
@@ -486,9 +551,22 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="sheet">
+            <SheetView
+              settings={settings}
+              onChange={(next) => {
+                setSettings(next);
+                saveSettings(next);
+              }}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Sticky Bottom Bar */}
+      {/* Sticky Bottom Bar — shown only on the Invoice tab (it generates PDFs) */}
+      {view === "invoice" && (
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t p-4">
         <div className="mx-auto max-w-2xl flex gap-3">
           <Button
@@ -530,6 +608,7 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+      )}
 
       {/* Preview Overlay */}
       {previewUrl && (

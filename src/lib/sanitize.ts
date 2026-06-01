@@ -1,11 +1,16 @@
 import {
   UserSettings,
   DEFAULT_SETTINGS,
+  BUILTIN_COLUMNS,
   type Field,
   type Product,
   type CustomDateTemplate,
   type TemplateBase,
   type TemplateMode,
+  type SheetColumn,
+  type SheetRow,
+  type Party,
+  type InvoiceSnapshot,
 } from "./types";
 
 const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -116,6 +121,70 @@ function validateCustomTemplate(v: unknown): CustomDateTemplate | null {
   return tpl;
 }
 
+function validateParty(v: unknown): Party | null {
+  if (!isPlainObject(v) || !Array.isArray(v.fields)) return null;
+  const fields: Field[] = [];
+  for (const f of (v.fields as unknown[]).slice(0, 100)) {
+    const vf = validateField(f);
+    if (vf) fields.push(vf);
+  }
+  return { fields };
+}
+
+function validateInvoiceSnapshot(v: unknown): InvoiceSnapshot | undefined {
+  if (!isPlainObject(v)) return undefined;
+  if (typeof v.invoiceNumber !== "string") return undefined;
+  if (typeof v.invoiceDate !== "string" || typeof v.from !== "string" || typeof v.to !== "string") return undefined;
+  const sender = validateParty(v.sender);
+  const receiver = validateParty(v.receiver);
+  if (!sender || !receiver) return undefined;
+  if (!Array.isArray(v.products)) return undefined;
+  const products: Product[] = [];
+  for (const p of (v.products as unknown[]).slice(0, 100)) {
+    const vp = validateProduct(p);
+    if (vp) products.push(vp);
+  }
+  return {
+    invoiceNumber: truncStr(v.invoiceNumber, 1000),
+    invoiceDate: truncStr(v.invoiceDate, 100),
+    from: truncStr(v.from, 100),
+    to: truncStr(v.to, 100),
+    sender,
+    receiver,
+    products,
+    currency: typeof v.currency === "string" ? truncStr(v.currency, 1000) : "USD",
+    footerText: typeof v.footerText === "string" ? truncStr(v.footerText, 500) : "",
+  };
+}
+
+function validateSheetColumn(v: unknown): SheetColumn | null {
+  if (!isPlainObject(v)) return null;
+  if (typeof v.id !== "string" || typeof v.label !== "string") return null;
+  return {
+    id: truncStr(v.id, 200),
+    label: truncStr(v.label, 200),
+    builtin: v.builtin === true,
+  };
+}
+
+function validateSheetRow(v: unknown, colIds: Set<string>): SheetRow | null {
+  if (!isPlainObject(v)) return null;
+  if (typeof v.id !== "string") return null;
+  if (!isPlainObject(v.values)) return null;
+  const rawValues = v.values as Record<string, unknown>;
+  const values: Record<string, string> = {};
+  for (const k of Object.keys(rawValues)) {
+    if (!colIds.has(k)) continue; // drop orphan cell keys (columns that no longer exist)
+    const cell = rawValues[k];
+    if (typeof cell === "string") values[k] = truncStr(cell, 1000);
+    else if (typeof cell === "number" && isFinite(cell)) values[k] = String(cell);
+  }
+  const row: SheetRow = { id: truncStr(v.id, 200), values };
+  const invoice = validateInvoiceSnapshot(v.invoice);
+  if (invoice) row.invoice = invoice;
+  return row;
+}
+
 type ValidationResult =
   | { valid: true; data: UserSettings }
   | { valid: false; error: string };
@@ -200,12 +269,50 @@ export function validateImportedSettings(parsed: unknown): ValidationResult {
     result.lastInvoiceNumber = obj.lastInvoiceNumber;
   }
 
+  if (typeof obj.invoiceNumberPrefix === "string") {
+    result.invoiceNumberPrefix = truncStr(obj.invoiceNumberPrefix, 100);
+  }
+
+  if (typeof obj.invoiceNumberPadLength === "number" && Number.isInteger(obj.invoiceNumberPadLength) && obj.invoiceNumberPadLength >= 0 && obj.invoiceNumberPadLength <= 20) {
+    result.invoiceNumberPadLength = obj.invoiceNumberPadLength;
+  }
+
+  if (typeof obj.includeFyInFilename === "boolean") {
+    result.includeFyInFilename = obj.includeFyInFilename;
+  }
+
   if (typeof obj.currency === "string") {
     result.currency = truncStr(obj.currency, 1000);
   }
 
   if (typeof obj.footerText === "string") {
     result.footerText = truncStr(obj.footerText, 500);
+  }
+
+  // --- sheet (ledger) — optional; defaults to DEFAULT_SHEET via DEFAULT_SETTINGS ---
+  if (isPlainObject(obj.sheet)) {
+    const sObj = obj.sheet as Record<string, unknown>;
+    const cols: SheetColumn[] = [];
+    if (Array.isArray(sObj.columns)) {
+      for (const c of (sObj.columns as unknown[]).slice(0, 50)) {
+        const vc = validateSheetColumn(c);
+        if (vc) cols.push(vc);
+      }
+    }
+    const finalCols = cols.length > 0 ? cols : BUILTIN_COLUMNS.map((c) => ({ ...c }));
+    const colIds = new Set(finalCols.map((c) => c.id));
+    const rows: SheetRow[] = [];
+    if (Array.isArray(sObj.rows)) {
+      for (const r of (sObj.rows as unknown[]).slice(0, 1000)) {
+        const vr = validateSheetRow(r, colIds);
+        if (vr) rows.push(vr);
+      }
+    }
+    result.sheet = {
+      firmName: typeof sObj.firmName === "string" ? truncStr(sObj.firmName, 200) : "",
+      columns: finalCols,
+      rows,
+    };
   }
 
   return { valid: true, data: result };

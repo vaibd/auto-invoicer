@@ -8,8 +8,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { saveAs } from "file-saver";
 import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, saveSettings, clearAllData } from "@/lib/storage";
+import { useHydrated } from "@/lib/use-hydrated";
 import { validateImportedSettings } from "@/lib/sanitize";
 import { CURRENCIES } from "@/lib/currency";
+import { getFinancialYearShort } from "@/lib/financial-year";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 import {
   BUILT_IN_TEMPLATES,
   TEMPLATE_PRESETS,
@@ -157,19 +160,17 @@ function CustomTemplateBuilder({
 
 export default function SetupPage() {
   const router = useRouter();
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
+  // Seed from localStorage lazily; getSettings() returns DEFAULT_SETTINGS during
+  // SSR (no window) and the stored values on the client's first render. The
+  // settings-dependent UI is gated on `hydrated` below so the two never mismatch.
+  const [settings, setSettings] = useState<UserSettings>(getSettings);
+  const hydrated = useHydrated();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
-
-  useEffect(() => {
-    setSettings(getSettings());
-    setLoaded(true);
-  }, []);
 
   const updateDropdownPos = useCallback(() => {
     if (triggerRef.current) {
@@ -242,7 +243,7 @@ export default function SetupPage() {
     e.target.value = "";
   }
 
-  if (!loaded) return null;
+  if (!hydrated) return null;
 
   return (
     <div className="min-h-screen bg-page-gradient">
@@ -313,7 +314,7 @@ export default function SetupPage() {
                 type="button"
                 onClick={() => setCurrencyOpen((o) => !o)}
                 className={cn(
-                  "flex h-7 w-full items-center justify-between rounded-sm border border-input bg-transparent px-2 text-sm",
+                  "flex h-7 w-full cursor-pointer items-center justify-between rounded-sm border border-input bg-transparent px-2 text-sm",
                   "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 )}>
                 <span>
@@ -382,6 +383,54 @@ export default function SetupPage() {
                 Leave empty to hide the footer on the PDF.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* File Name */}
+        <Card className="shadow-sm animate-fade-in-up delay-4">
+          <CardHeader>
+            <CardTitle className="font-sans font-bold">File Name</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={settings.includeFyInFilename}
+              onClick={() =>
+                setSettings((s) => ({
+                  ...s,
+                  includeFyInFilename: !s.includeFyInFilename,
+                }))
+              }
+              className="flex w-full cursor-pointer items-start gap-3 text-left"
+            >
+              <span
+                className={cn(
+                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
+                  settings.includeFyInFilename
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-transparent"
+                )}
+              >
+                {settings.includeFyInFilename && <Check className="size-3.5" />}
+              </span>
+              <span>
+                <span className="block text-sm font-medium">
+                  Prefix file name with financial year
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Starts each PDF name with the current financial year — e.g.{" "}
+                  <span className="font-mono">
+                    {getFinancialYearShort(new Date())}{" "}
+                    {formatInvoiceNumber(
+                      settings.lastInvoiceNumber + 1,
+                      settings.invoiceNumberPrefix,
+                      settings.invoiceNumberPadLength
+                    )}
+                  </span>
+                </span>
+              </span>
+            </button>
           </CardContent>
         </Card>
 
