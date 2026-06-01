@@ -44,6 +44,50 @@ export interface InvoiceData {
   footerText: string;
 }
 
+// --- Sheet (ledger) model ---
+
+export type BuiltinColumnId =
+  | "srNo"
+  | "invoiceName"
+  | "date"
+  | "amountInr"
+  | "amountUsd"
+  | "conversionRate"
+  | "platformFees";
+
+export interface SheetColumn {
+  id: string; // a BuiltinColumnId, or `col-${timestamp}` for custom columns
+  label: string;
+  builtin: boolean;
+}
+
+export interface SheetRow {
+  id: string;
+  values: Record<string, string>; // keyed by SheetColumn.id; always strings
+}
+
+export interface Sheet {
+  firmName: string;
+  columns: SheetColumn[];
+  rows: SheetRow[];
+}
+
+export const BUILTIN_COLUMNS: SheetColumn[] = [
+  { id: "srNo", label: "Sr no", builtin: true },
+  { id: "invoiceName", label: "Invoice Name", builtin: true },
+  { id: "date", label: "Date", builtin: true },
+  { id: "amountInr", label: "Amount (INR)", builtin: true },
+  { id: "amountUsd", label: "Amount (USD)", builtin: true },
+  { id: "conversionRate", label: "Rate (USD→INR)", builtin: true },
+  { id: "platformFees", label: "Platform fees", builtin: true },
+];
+
+export const DEFAULT_SHEET: Sheet = {
+  firmName: "",
+  columns: BUILTIN_COLUMNS.map((c) => ({ ...c })),
+  rows: [],
+};
+
 export interface UserSettings {
   sender: Party;
   receiver: Party;
@@ -54,6 +98,7 @@ export interface UserSettings {
   lastInvoiceNumber: number;
   currency: string;
   footerText: string;
+  sheet: Sheet;
 }
 
 export const DEFAULT_SENDER_FIELDS: Field[] = [
@@ -74,4 +119,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   lastInvoiceNumber: 0,
   currency: "USD",
   footerText: "Thank you for your business!",
+  sheet: DEFAULT_SHEET,
 };

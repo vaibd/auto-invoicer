@@ -1,11 +1,14 @@
 import {
   UserSettings,
   DEFAULT_SETTINGS,
+  BUILTIN_COLUMNS,
   type Field,
   type Product,
   type CustomDateTemplate,
   type TemplateBase,
   type TemplateMode,
+  type SheetColumn,
+  type SheetRow,
 } from "./types";
 
 const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -116,6 +119,31 @@ function validateCustomTemplate(v: unknown): CustomDateTemplate | null {
   return tpl;
 }
 
+function validateSheetColumn(v: unknown): SheetColumn | null {
+  if (!isPlainObject(v)) return null;
+  if (typeof v.id !== "string" || typeof v.label !== "string") return null;
+  return {
+    id: truncStr(v.id, 200),
+    label: truncStr(v.label, 200),
+    builtin: v.builtin === true,
+  };
+}
+
+function validateSheetRow(v: unknown, colIds: Set<string>): SheetRow | null {
+  if (!isPlainObject(v)) return null;
+  if (typeof v.id !== "string") return null;
+  if (!isPlainObject(v.values)) return null;
+  const rawValues = v.values as Record<string, unknown>;
+  const values: Record<string, string> = {};
+  for (const k of Object.keys(rawValues)) {
+    if (!colIds.has(k)) continue; // drop orphan cell keys (columns that no longer exist)
+    const cell = rawValues[k];
+    if (typeof cell === "string") values[k] = truncStr(cell, 1000);
+    else if (typeof cell === "number" && isFinite(cell)) values[k] = String(cell);
+  }
+  return { id: truncStr(v.id, 200), values };
+}
+
 type ValidationResult =
   | { valid: true; data: UserSettings }
   | { valid: false; error: string };
@@ -206,6 +234,32 @@ export function validateImportedSettings(parsed: unknown): ValidationResult {
 
   if (typeof obj.footerText === "string") {
     result.footerText = truncStr(obj.footerText, 500);
+  }
+
+  // --- sheet (ledger) — optional; defaults to DEFAULT_SHEET via DEFAULT_SETTINGS ---
+  if (isPlainObject(obj.sheet)) {
+    const sObj = obj.sheet as Record<string, unknown>;
+    const cols: SheetColumn[] = [];
+    if (Array.isArray(sObj.columns)) {
+      for (const c of (sObj.columns as unknown[]).slice(0, 50)) {
+        const vc = validateSheetColumn(c);
+        if (vc) cols.push(vc);
+      }
+    }
+    const finalCols = cols.length > 0 ? cols : BUILTIN_COLUMNS.map((c) => ({ ...c }));
+    const colIds = new Set(finalCols.map((c) => c.id));
+    const rows: SheetRow[] = [];
+    if (Array.isArray(sObj.rows)) {
+      for (const r of (sObj.rows as unknown[]).slice(0, 1000)) {
+        const vr = validateSheetRow(r, colIds);
+        if (vr) rows.push(vr);
+      }
+    }
+    result.sheet = {
+      firmName: typeof sObj.firmName === "string" ? truncStr(sObj.firmName, 200) : "",
+      columns: finalCols,
+      rows,
+    };
   }
 
   return { valid: true, data: result };

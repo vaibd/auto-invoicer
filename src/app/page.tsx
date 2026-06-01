@@ -9,8 +9,9 @@ import { saveAs } from "file-saver";
 import { toast } from "sonner";
 
 import { UserSettings, InvoiceData, DEFAULT_SETTINGS } from "@/lib/types";
-import { getSettings, hasSetup } from "@/lib/storage";
+import { getSettings, hasSetup, saveSettings } from "@/lib/storage";
 import { sanitizeFilename } from "@/lib/sanitize";
+import { appendInvoiceRow, ensureSheet } from "@/lib/sheet";
 import { formatCurrency } from "@/lib/currency";
 import {
   resolveTemplate,
@@ -23,6 +24,7 @@ import {
 import { peekNextInvoiceNumber, parseInvoiceNum, setLastInvoiceNumber } from "@/lib/invoice-number";
 import { DateTemplateSelector } from "@/components/invoice/DateTemplateSelector";
 import { InvoicePDF } from "@/components/pdf/InvoicePDF";
+import { SheetView } from "@/components/sheet/SheetView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [view, setView] = useState<"invoice" | "sheet">("invoice");
   const [activeTab, setActiveTab] = useState<"current" | "custom">("current");
   const [customMonth, setCustomMonth] = useState(() => {
     const prev = new Date();
@@ -93,9 +96,33 @@ export default function Dashboard() {
     const parsed = parseInvoiceNum(invoiceNumber);
     if (parsed !== null) {
       setLastInvoiceNumber(parsed);
+      // Keep React state in sync with the persisted counter so a later sheet
+      // edit (which saves the whole settings object) can't roll it back.
+      setSettings((prev) => ({ ...prev, lastInvoiceNumber: parsed }));
     }
     const nextNum = peekNextInvoiceNumber();
     setInvoiceNumber(nextNum);
+  };
+
+  // Append a ledger row for the invoice just downloaded. Reads the freshest
+  // persisted settings so it never clobbers concurrent writes, and must run
+  // BEFORE advanceInvoiceCounter() so the counter bump preserves this row.
+  const recordInvoiceInSheet = () => {
+    const current = getSettings();
+    const amountUsd = current.products.reduce(
+      (sum, p) => sum + p.price * p.quantity,
+      0
+    );
+    const next: UserSettings = {
+      ...current,
+      sheet: appendInvoiceRow(ensureSheet(current.sheet), {
+        invoiceName: invoiceNumber,
+        date: invoiceDate,
+        amountUsd,
+      }),
+    };
+    setSettings(next);
+    saveSettings(next);
   };
 
   const buildFileName = () => {
@@ -126,6 +153,7 @@ export default function Dashboard() {
       const blob = await pdf(<InvoicePDF data={data} />).toBlob();
       saveAs(blob, buildFileName());
 
+      recordInvoiceInSheet();
       toast.success(`Invoice #${invoiceNumber} downloaded`);
       advanceInvoiceCounter();
     } catch (err) {
@@ -186,6 +214,7 @@ export default function Dashboard() {
   const downloadFromPreview = useCallback(() => {
     if (!previewBlob) return;
     saveAs(previewBlob, buildFileName());
+    recordInvoiceInSheet();
     toast.success(`Invoice #${invoiceNumber} downloaded`);
     closePreview();
     advanceInvoiceCounter();
@@ -230,6 +259,19 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Invoice / Sheet tabs */}
+        <Tabs
+          value={view}
+          onValueChange={(v) => setView(v as "invoice" | "sheet")}
+          className="animate-fade-in-up"
+        >
+          <TabsList>
+            <TabsTrigger value="invoice">Invoice</TabsTrigger>
+            <TabsTrigger value="sheet">Sheet</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="invoice" className="space-y-5">
 
         {/* Party Summary */}
         <div className="grid gap-4 md:grid-cols-2 animate-fade-in-up delay-1">
@@ -486,9 +528,22 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="sheet">
+            <SheetView
+              settings={settings}
+              onChange={(next) => {
+                setSettings(next);
+                saveSettings(next);
+              }}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Sticky Bottom Bar */}
+      {/* Sticky Bottom Bar — shown only on the Invoice tab (it generates PDFs) */}
+      {view === "invoice" && (
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t p-4">
         <div className="mx-auto max-w-2xl flex gap-3">
           <Button
@@ -530,6 +585,7 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+      )}
 
       {/* Preview Overlay */}
       {previewUrl && (
