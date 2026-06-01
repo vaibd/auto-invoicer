@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, Download, X } from "lucide-react";
+import { pdf } from "@react-pdf/renderer";
+import { Plus, Trash2, Loader2, Download, FileDown, X } from "lucide-react";
 
-import { UserSettings, Sheet, SheetRow } from "@/lib/types";
+import { UserSettings, Sheet, SheetRow, InvoiceData } from "@/lib/types";
+import { InvoicePDF } from "@/components/pdf/InvoicePDF";
 import {
   ensureSheet,
   parseNum,
@@ -16,7 +18,7 @@ import {
   createEmptyRow,
 } from "@/lib/sheet";
 import { fetchUsdInrRate } from "@/lib/fx-rate";
-import { getFinancialYear } from "@/lib/financial-year";
+import { getFinancialYear, getFinancialYearShort } from "@/lib/financial-year";
 import { sanitizeFilename } from "@/lib/sanitize";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +44,41 @@ const PLACEHOLDERS: Record<string, string> = {
 const cellInputBase =
   "block w-full min-w-[6.5rem] bg-transparent px-2 py-1.5 text-sm outline-none rounded-sm focus:bg-background focus:ring-2 focus:ring-ring/40";
 
+/**
+ * Build invoice data for a row's PDF. Prefers the exact snapshot captured at
+ * download time; falls back to current settings + row fields for rows that
+ * predate snapshots (or were added manually).
+ */
+function rowToInvoiceData(row: SheetRow, settings: UserSettings): InvoiceData {
+  if (row.invoice) {
+    const s = row.invoice;
+    return {
+      invoiceNumber: s.invoiceNumber,
+      invoiceDate: new Date(s.invoiceDate),
+      from: new Date(s.from),
+      to: new Date(s.to),
+      sender: s.sender,
+      receiver: s.receiver,
+      products: s.products,
+      currency: s.currency,
+      footerText: s.footerText,
+    };
+  }
+  const parsed = row.values.date ? new Date(row.values.date) : new Date();
+  const date = isNaN(parsed.getTime()) ? new Date() : parsed;
+  return {
+    invoiceNumber: row.values.invoiceName || "INVOICE",
+    invoiceDate: date,
+    from: date,
+    to: date,
+    sender: settings.sender,
+    receiver: settings.receiver,
+    products: settings.products,
+    currency: settings.currency,
+    footerText: settings.footerText,
+  };
+}
+
 interface SheetViewProps {
   settings: UserSettings;
   onChange: (next: UserSettings) => void;
@@ -49,6 +86,7 @@ interface SheetViewProps {
 
 export function SheetView({ settings, onChange }: SheetViewProps) {
   const sheet = ensureSheet(settings.sheet);
+  const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
 
   const update = (mutator: (s: Sheet) => Sheet) =>
     onChange({ ...settings, sheet: mutator(sheet) });
@@ -115,6 +153,25 @@ export function SheetView({ settings, onChange }: SheetViewProps) {
       `${base}_${getFinancialYear(new Date())}.csv`
     );
     toast.success("Sheet exported");
+  };
+
+  const downloadRowPdf = async (row: SheetRow) => {
+    setPdfBusyId(row.id);
+    try {
+      const data = rowToInvoiceData(row, settings);
+      const blob = await pdf(<InvoicePDF data={data} />).toBlob();
+      const safe = sanitizeFilename(data.invoiceNumber).replace(/\.pdf$/i, "") || "invoice";
+      const fy = settings.includeFyInFilename
+        ? `${getFinancialYearShort(data.invoiceDate)} `
+        : "";
+      saveAs(blob, `${fy}${safe}.pdf`);
+      toast.success("Invoice PDF downloaded");
+    } catch (err) {
+      console.error("Row PDF generation failed:", err);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setPdfBusyId(null);
+    }
   };
 
   return (
@@ -201,7 +258,7 @@ export function SheetView({ settings, onChange }: SheetViewProps) {
                         <button
                           type="button"
                           onClick={() => removeColumn(col.id)}
-                          className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+                          className="shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-destructive"
                           aria-label="Remove column"
                         >
                           <X className="size-3.5" />
@@ -210,7 +267,7 @@ export function SheetView({ settings, onChange }: SheetViewProps) {
                     )}
                   </th>
                 ))}
-                <th className="w-10 border-t border-border/60 px-2 py-1.5" />
+                <th className="w-20 border-t border-border/60 px-2 py-1.5" />
               </tr>
             </thead>
             <tbody>
@@ -256,15 +313,31 @@ export function SheetView({ settings, onChange }: SheetViewProps) {
                         )}
                       </td>
                     ))}
-                    <td className="border-t border-border/60 px-1 text-center">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => deleteRow(row.id)}
-                        aria-label="Delete row"
-                      >
-                        <Trash2 className="size-4 text-muted-foreground" />
-                      </Button>
+                    <td className="border-t border-border/60 px-1">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => downloadRowPdf(row)}
+                          disabled={pdfBusyId === row.id}
+                          aria-label="Download invoice PDF"
+                          title="Download invoice PDF"
+                        >
+                          {pdfBusyId === row.id ? (
+                            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                          ) : (
+                            <FileDown className="size-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => deleteRow(row.id)}
+                          aria-label="Delete row"
+                        >
+                          <Trash2 className="size-4 text-muted-foreground" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

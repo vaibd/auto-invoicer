@@ -50,6 +50,7 @@ export type BuiltinColumnId =
   | "srNo"
   | "invoiceName"
   | "date"
+  | "dateRange"
   | "amountInr"
   | "amountUsd"
   | "conversionRate"
@@ -61,9 +62,24 @@ export interface SheetColumn {
   builtin: boolean;
 }
 
+/** A self-contained copy of the invoice that produced a ledger row, so the exact
+ *  same PDF can be re-downloaded later. Dates are stored as ISO strings (JSON-safe). */
+export interface InvoiceSnapshot {
+  invoiceNumber: string;
+  invoiceDate: string;
+  from: string;
+  to: string;
+  sender: Party;
+  receiver: Party;
+  products: Product[];
+  currency: string;
+  footerText: string;
+}
+
 export interface SheetRow {
   id: string;
   values: Record<string, string>; // keyed by SheetColumn.id; always strings
+  invoice?: InvoiceSnapshot; // present for rows auto-created on invoice download
 }
 
 export interface Sheet {
@@ -76,6 +92,7 @@ export const BUILTIN_COLUMNS: SheetColumn[] = [
   { id: "srNo", label: "Sr no", builtin: true },
   { id: "invoiceName", label: "Invoice Name", builtin: true },
   { id: "date", label: "Date", builtin: true },
+  { id: "dateRange", label: "Date Range", builtin: true },
   { id: "amountInr", label: "Amount (INR)", builtin: true },
   { id: "amountUsd", label: "Amount (USD)", builtin: true },
   { id: "conversionRate", label: "Rate (USD→INR)", builtin: true },

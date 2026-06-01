@@ -315,7 +315,7 @@ export default function SetupPage() {
                 type="button"
                 onClick={() => setCurrencyOpen((o) => !o)}
                 className={cn(
-                  "flex h-7 w-full items-center justify-between rounded-sm border border-input bg-transparent px-2 text-sm",
+                  "flex h-7 w-full cursor-pointer items-center justify-between rounded-sm border border-input bg-transparent px-2 text-sm",
                   "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 )}>
                 <span>
@@ -403,7 +403,7 @@ export default function SetupPage() {
                   includeFyInFilename: !s.includeFyInFilename,
                 }))
               }
-              className="flex w-full items-start gap-3 text-left"
+              className="flex w-full cursor-pointer items-start gap-3 text-left"
             >
               <span
                 className={cn(

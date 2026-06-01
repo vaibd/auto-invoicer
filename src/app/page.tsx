@@ -8,7 +8,7 @@ import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 
-import { UserSettings, InvoiceData, DEFAULT_SETTINGS } from "@/lib/types";
+import { UserSettings, InvoiceData, InvoiceSnapshot, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, hasSetup, saveSettings } from "@/lib/storage";
 import { sanitizeFilename } from "@/lib/sanitize";
 import { appendInvoiceRow, ensureSheet } from "@/lib/sheet";
@@ -123,12 +123,27 @@ export default function Dashboard() {
       (sum, p) => sum + p.price * p.quantity,
       0
     );
+    // Snapshot the exact invoice so the row's PDF can be re-downloaded identically.
+    const invoice: InvoiceSnapshot = {
+      invoiceNumber,
+      invoiceDate: invoiceDate.toISOString(),
+      from: resolved.from.toISOString(),
+      to: resolved.to.toISOString(),
+      sender: current.sender,
+      receiver: current.receiver,
+      products: current.products,
+      currency: current.currency,
+      footerText: current.footerText,
+    };
     const next: UserSettings = {
       ...current,
       sheet: appendInvoiceRow(ensureSheet(current.sheet), {
         invoiceName: invoiceNumber,
         date: invoiceDate,
         amountUsd,
+        from: resolved.from,
+        to: resolved.to,
+        invoice,
       }),
     };
     setSettings(next);

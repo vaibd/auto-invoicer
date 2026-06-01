@@ -1,4 +1,4 @@
-import { Sheet, SheetColumn, SheetRow, BUILTIN_COLUMNS } from "./types";
+import { Sheet, SheetColumn, SheetRow, BUILTIN_COLUMNS, InvoiceSnapshot } from "./types";
 import { getFinancialYear } from "./financial-year";
 
 /** YYYY-MM-DD (local). Mirrors the closure used for invoice filenames in page.tsx. */
@@ -7,6 +7,11 @@ export function formatDateCompact(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+/** Compact date range for the ledger, e.g. "2026-05-01 – 2026-05-15". */
+export function formatDateRangeCompact(from: Date, to: Date): string {
+  return `${formatDateCompact(from)} – ${formatDateCompact(to)}`;
 }
 
 /** Parse a possibly-formatted numeric cell ("₹8,000" -> 8000). Returns NaN if empty/invalid. */
@@ -30,20 +35,35 @@ export function getSheetHeader(firmName: string, date: Date = new Date()): strin
 /** Normalize a possibly-partial/legacy sheet (shallow merge on load can leave it incomplete). */
 export function ensureSheet(s: Partial<Sheet> | undefined | null): Sheet {
   const src: Partial<Sheet> = s && typeof s === "object" ? s : {};
-  const base: Sheet = {
+  const existing =
+    Array.isArray(src.columns) && src.columns.length > 0
+      ? src.columns.map((c) => ({ ...c }))
+      : BUILTIN_COLUMNS.map((c) => ({ ...c }));
+  // Builtins always come first in canonical order (filling in any newly-added
+  // ones, e.g. data predating "Date Range"), followed by custom columns.
+  const byId = new Map(existing.map((c) => [c.id, c]));
+  const builtinIds = new Set(BUILTIN_COLUMNS.map((c) => c.id));
+  const orderedBuiltins = BUILTIN_COLUMNS.map((b) => byId.get(b.id) ?? { ...b });
+  const customs = existing.filter((c) => !builtinIds.has(c.id));
+  const rows = (Array.isArray(src.rows) ? src.rows : []).map((r) => {
+    // Backfill the date range for older rows that have a snapshot but no value yet.
+    if (r && r.invoice && !(r.values && r.values.dateRange)) {
+      const from = new Date(r.invoice.from);
+      const to = new Date(r.invoice.to);
+      if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
+        return {
+          ...r,
+          values: { ...r.values, dateRange: formatDateRangeCompact(from, to) },
+        };
+      }
+    }
+    return r;
+  });
+  return {
     firmName: typeof src.firmName === "string" ? src.firmName : "",
-    columns:
-      Array.isArray(src.columns) && src.columns.length > 0
-        ? src.columns.map((c) => ({ ...c }))
-        : BUILTIN_COLUMNS.map((c) => ({ ...c })),
-    rows: Array.isArray(src.rows) ? src.rows : [],
+    columns: [...orderedBuiltins, ...customs],
+    rows,
   };
-  // Guarantee every builtin column exists (e.g. data predating a newly-added builtin).
-  for (let i = BUILTIN_COLUMNS.length - 1; i >= 0; i--) {
-    const b = BUILTIN_COLUMNS[i];
-    if (!base.columns.some((c) => c.id === b.id)) base.columns.unshift({ ...b });
-  }
-  return base;
 }
 
 let rowSeq = 0;
@@ -65,14 +85,25 @@ export function createCustomColumn(label = "New column"): SheetColumn {
 /** Append a ledger row from a freshly-downloaded invoice (never mutates existing rows). */
 export function appendInvoiceRow(
   sheet: Sheet,
-  args: { invoiceName: string; date: Date; amountUsd: number }
+  args: {
+    invoiceName: string;
+    date: Date;
+    amountUsd: number;
+    from?: Date;
+    to?: Date;
+    invoice?: InvoiceSnapshot;
+  }
 ): Sheet {
   const row = createEmptyRow(sheet.columns);
   row.values.srNo = String(sheet.rows.length + 1);
   row.values.invoiceName = args.invoiceName;
   row.values.date = formatDateCompact(args.date);
+  if (args.from && args.to) {
+    row.values.dateRange = formatDateRangeCompact(args.from, args.to);
+  }
   row.values.amountUsd = String(args.amountUsd);
   // amountInr / conversionRate / platformFees stay blank for manual entry + Run.
+  if (args.invoice) row.invoice = args.invoice;
   return { ...sheet, rows: [...sheet.rows, row] };
 }
 

@@ -9,6 +9,8 @@ import {
   type TemplateMode,
   type SheetColumn,
   type SheetRow,
+  type Party,
+  type InvoiceSnapshot,
 } from "./types";
 
 const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -119,6 +121,42 @@ function validateCustomTemplate(v: unknown): CustomDateTemplate | null {
   return tpl;
 }
 
+function validateParty(v: unknown): Party | null {
+  if (!isPlainObject(v) || !Array.isArray(v.fields)) return null;
+  const fields: Field[] = [];
+  for (const f of (v.fields as unknown[]).slice(0, 100)) {
+    const vf = validateField(f);
+    if (vf) fields.push(vf);
+  }
+  return { fields };
+}
+
+function validateInvoiceSnapshot(v: unknown): InvoiceSnapshot | undefined {
+  if (!isPlainObject(v)) return undefined;
+  if (typeof v.invoiceNumber !== "string") return undefined;
+  if (typeof v.invoiceDate !== "string" || typeof v.from !== "string" || typeof v.to !== "string") return undefined;
+  const sender = validateParty(v.sender);
+  const receiver = validateParty(v.receiver);
+  if (!sender || !receiver) return undefined;
+  if (!Array.isArray(v.products)) return undefined;
+  const products: Product[] = [];
+  for (const p of (v.products as unknown[]).slice(0, 100)) {
+    const vp = validateProduct(p);
+    if (vp) products.push(vp);
+  }
+  return {
+    invoiceNumber: truncStr(v.invoiceNumber, 1000),
+    invoiceDate: truncStr(v.invoiceDate, 100),
+    from: truncStr(v.from, 100),
+    to: truncStr(v.to, 100),
+    sender,
+    receiver,
+    products,
+    currency: typeof v.currency === "string" ? truncStr(v.currency, 1000) : "USD",
+    footerText: typeof v.footerText === "string" ? truncStr(v.footerText, 500) : "",
+  };
+}
+
 function validateSheetColumn(v: unknown): SheetColumn | null {
   if (!isPlainObject(v)) return null;
   if (typeof v.id !== "string" || typeof v.label !== "string") return null;
@@ -141,7 +179,10 @@ function validateSheetRow(v: unknown, colIds: Set<string>): SheetRow | null {
     if (typeof cell === "string") values[k] = truncStr(cell, 1000);
     else if (typeof cell === "number" && isFinite(cell)) values[k] = String(cell);
   }
-  return { id: truncStr(v.id, 200), values };
+  const row: SheetRow = { id: truncStr(v.id, 200), values };
+  const invoice = validateInvoiceSnapshot(v.invoice);
+  if (invoice) row.invoice = invoice;
+  return row;
 }
 
 type ValidationResult =
