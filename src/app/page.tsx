@@ -12,6 +12,7 @@ import { UserSettings, InvoiceData, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, hasSetup, saveSettings } from "@/lib/storage";
 import { sanitizeFilename } from "@/lib/sanitize";
 import { appendInvoiceRow, ensureSheet } from "@/lib/sheet";
+import { getFinancialYearShort } from "@/lib/financial-year";
 import { formatCurrency } from "@/lib/currency";
 import {
   resolveTemplate,
@@ -21,7 +22,7 @@ import {
   RANGE_OPTIONS,
   type RangeType,
 } from "@/lib/date-templates";
-import { peekNextInvoiceNumber, parseInvoiceNum, setLastInvoiceNumber } from "@/lib/invoice-number";
+import { peekNextInvoiceNumber, parseInvoiceNum, setLastInvoiceNumber, splitInvoiceNumber } from "@/lib/invoice-number";
 import { DateTemplateSelector } from "@/components/invoice/DateTemplateSelector";
 import { InvoicePDF } from "@/components/pdf/InvoicePDF";
 import { SheetView } from "@/components/sheet/SheetView";
@@ -80,17 +81,26 @@ export default function Dashboard() {
     setInvoiceNumber(`${prefix}${String(newNum).padStart(padLen, "0")}`);
   };
 
+  // Filter input and persist the prefix + zero-pad width so the field's format
+  // survives reloads and is included in config backups. (The trailing counter is
+  // saved separately on download via advanceInvoiceCounter.)
+  const handleInvoiceNumberChange = (raw: string) => {
+    const value = raw.replace(/[^a-zA-Z0-9\-_. ]/g, "");
+    setInvoiceNumber(value);
+    const { prefix, pad } = splitInvoiceNumber(value);
+    const next: UserSettings = {
+      ...getSettings(),
+      invoiceNumberPrefix: prefix,
+      invoiceNumberPadLength: pad,
+    };
+    setSettings(next);
+    saveSettings(next);
+  };
+
   const resolved =
     activeTab === "custom"
       ? resolveForMonth(customMonth, customYear, customRange)
       : resolveTemplate(selectedTemplate, settings.defaultMonth, settings.customTemplates);
-
-  const formatDateCompact = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
 
   const advanceInvoiceCounter = () => {
     const parsed = parseInvoiceNum(invoiceNumber);
@@ -127,8 +137,10 @@ export default function Dashboard() {
 
   const buildFileName = () => {
     const safeName = sanitizeFilename(invoiceNumber).replace(/\.pdf$/i, "");
-    const dateRange = `${formatDateCompact(resolved.from)}_${formatDateCompact(resolved.to)}`;
-    return `${safeName}_${dateRange}.pdf`;
+    const fyPrefix = settings.includeFyInFilename
+      ? `${getFinancialYearShort(invoiceDate)} `
+      : "";
+    return `${fyPrefix}${safeName}.pdf`;
   };
 
   const handleGenerate = useCallback(async () => {
@@ -491,11 +503,7 @@ export default function Dashboard() {
                     id="invoiceNumber"
                     value={invoiceNumber}
                     maxLength={100}
-                    onChange={(e) =>
-                      setInvoiceNumber(
-                        e.target.value.replace(/[^a-zA-Z0-9\-_. ]/g, "")
-                      )
-                    }
+                    onChange={(e) => handleInvoiceNumberChange(e.target.value)}
                     className="font-mono text-center"
                   />
                   <Button

@@ -228,6 +228,18 @@ export function validateImportedSettings(parsed: unknown): ValidationResult {
     result.lastInvoiceNumber = obj.lastInvoiceNumber;
   }
 
+  if (typeof obj.invoiceNumberPrefix === "string") {
+    result.invoiceNumberPrefix = truncStr(obj.invoiceNumberPrefix, 100);
+  }
+
+  if (typeof obj.invoiceNumberPadLength === "number" && Number.isInteger(obj.invoiceNumberPadLength) && obj.invoiceNumberPadLength >= 0 && obj.invoiceNumberPadLength <= 20) {
+    result.invoiceNumberPadLength = obj.invoiceNumberPadLength;
+  }
+
+  if (typeof obj.includeFyInFilename === "boolean") {
+    result.includeFyInFilename = obj.includeFyInFilename;
+  }
+
   if (typeof obj.currency === "string") {
     result.currency = truncStr(obj.currency, 1000);
   }

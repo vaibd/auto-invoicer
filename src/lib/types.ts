@@ -96,6 +96,9 @@ export interface UserSettings {
   defaultMonth: number | null; // 0-11, null = use previous month
   customTemplates: CustomDateTemplate[];
   lastInvoiceNumber: number;
+  invoiceNumberPrefix: string; // text before the trailing counter, e.g. "INV-"
+  invoiceNumberPadLength: number; // zero-pad width of the counter, e.g. 4 -> 0001
+  includeFyInFilename: boolean; // prefix the PDF filename with the short FY, e.g. "26-27 "
   currency: string;
   footerText: string;
   sheet: Sheet;
@@ -117,6 +120,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
   defaultMonth: null,
   customTemplates: [],
   lastInvoiceNumber: 0,
+  invoiceNumberPrefix: "INV-",
+  invoiceNumberPadLength: 4,
+  includeFyInFilename: false,
   currency: "USD",
   footerText: "Thank you for your business!",
   sheet: DEFAULT_SHEET,

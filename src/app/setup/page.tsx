@@ -10,6 +10,8 @@ import { UserSettings, DEFAULT_SETTINGS } from "@/lib/types";
 import { getSettings, saveSettings, clearAllData } from "@/lib/storage";
 import { validateImportedSettings } from "@/lib/sanitize";
 import { CURRENCIES } from "@/lib/currency";
+import { getFinancialYearShort } from "@/lib/financial-year";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 import {
   BUILT_IN_TEMPLATES,
   TEMPLATE_PRESETS,
@@ -382,6 +384,54 @@ export default function SetupPage() {
                 Leave empty to hide the footer on the PDF.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* File Name */}
+        <Card className="shadow-sm animate-fade-in-up delay-4">
+          <CardHeader>
+            <CardTitle className="font-sans font-bold">File Name</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={settings.includeFyInFilename}
+              onClick={() =>
+                setSettings((s) => ({
+                  ...s,
+                  includeFyInFilename: !s.includeFyInFilename,
+                }))
+              }
+              className="flex w-full items-start gap-3 text-left"
+            >
+              <span
+                className={cn(
+                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
+                  settings.includeFyInFilename
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-transparent"
+                )}
+              >
+                {settings.includeFyInFilename && <Check className="size-3.5" />}
+              </span>
+              <span>
+                <span className="block text-sm font-medium">
+                  Prefix file name with financial year
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Starts each PDF name with the current financial year — e.g.{" "}
+                  <span className="font-mono">
+                    {getFinancialYearShort(new Date())}{" "}
+                    {formatInvoiceNumber(
+                      settings.lastInvoiceNumber + 1,
+                      settings.invoiceNumberPrefix,
+                      settings.invoiceNumberPadLength
+                    )}
+                  </span>
+                </span>
+              </span>
+            </button>
           </CardContent>
         </Card>
 
